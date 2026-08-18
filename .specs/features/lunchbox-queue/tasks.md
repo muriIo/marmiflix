@@ -936,9 +936,9 @@ T34 -> T35
 - Skill: `frontend-design`
 
 **Done when**:
-- [ ] `playTurnChime()` plays a short sound only when the tab is in the foreground and not muted (best-effort - browsers may still block autoplay audio without a prior user gesture, in which case it silently no-ops)
-- [ ] Called from `ConfirmTurn.tsx` alongside the vibration/animation trigger
-- [ ] Manually verified in the browser: sound plays alongside vibration/animation on a device with sound enabled
+- [x] `playTurnChime()` plays a short sound only when the tab is in the foreground and not muted (best-effort - browsers may still block autoplay audio without a prior user gesture, in which case it silently no-ops)
+- [x] Called from `ConfirmTurn.tsx` alongside the vibration/animation trigger
+- [x] Manually verified in the browser: sound plays alongside vibration/animation on a device with sound enabled
 
 **Tests**: none
 **Gate**: build

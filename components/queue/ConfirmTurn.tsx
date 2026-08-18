@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import { motion } from "framer-motion";
+import { playTurnChime } from "../../lib/sound";
 import type { UseQueueResult } from "../../hooks/useQueue";
 
 export function ConfirmTurn({ queue }: { queue: UseQueueResult }) {
@@ -17,6 +18,7 @@ export function ConfirmTurn({ queue }: { queue: UseQueueResult }) {
       navigator.vibrate(200);
     }
     confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+    playTurnChime();
   }, []);
 
   useEffect(() => {
