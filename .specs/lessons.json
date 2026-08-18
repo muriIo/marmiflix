@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "promote_threshold": 2,
+  "window_days": 45,
+  "quarantine_threshold": 2,
+  "next_id": 3,
+  "lessons": [
+    {
+      "id": "L-001",
+      "key": "spec_precision_gap::assert numeric spec bounds like a real time convergence window directly in a test or explicitly document in the test coverage matrix why the bound is only satisfied by construction and not directly measured",
+      "text": "Assert numeric spec bounds like a real-time convergence window directly in a test, or explicitly document in the Test Coverage Matrix why the bound is only satisfied by construction and not directly measured.",
+      "signal": "spec_precision_gap",
+      "scope": "realtime-sync",
+      "status": "candidate",
+      "features": [
+        "lunchbox-queue"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "QUEUE-18 / validation.md#Spec-Anchored Acceptance Criteria (realtime-sync)"
+      ],
+      "created": "2026-08-18T20:04:54Z",
+      "last_seen": "2026-08-18T20:04:54Z"
+    },
+    {
+      "id": "L-002",
+      "key": "spec_deviation::when a task s done when list enumerates a fixed set of error classes but a later task needs a case none of them fit add the minimal new error class and mark it spec deviation instead of overloading an existing error type semantically",
+      "text": "When a task's Done-when list enumerates a fixed set of error classes but a later task needs a case none of them fit, add the minimal new error class and mark it SPEC_DEVIATION instead of overloading an existing error type semantically.",
+      "signal": "spec_deviation",
+      "scope": "domain-errors",
+      "status": "candidate",
+      "features": [
+        "lunchbox-queue"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "lib/queue/types.ts:76 (domain-errors)"
+      ],
+      "created": "2026-08-18T20:04:54Z",
+      "last_seen": "2026-08-18T20:04:54Z"
+    }
+  ]
+}
