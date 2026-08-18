@@ -152,13 +152,14 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] `eslint.config.mjs` created
-- [ ] `package.json` gains `lint`, `typecheck` (`tsc --noEmit`), `format` scripts
-- [ ] `npm run lint` and `npm run typecheck` both pass on the current scaffold
+- [x] `eslint.config.mjs` created
+- [x] `package.json` gains `lint`, `typecheck` (`tsc --noEmit`), `format` scripts
+- [x] `npm run lint` and `npm run typecheck` both pass on the current scaffold
 
 **Tests**: none
 **Gate**: build
 **Commit**: `chore(setup): configure eslint and typecheck scripts`
+**Status**: ✅ Complete (added explicit `ignores: [".next/**", "next-env.d.ts"]` - without it, ESLint flat config linted Next's own generated build/type files and failed on ~140 errors that have nothing to do with this project's code; also bumped eslint to 9.39.5 to clear a ReDoS advisory in `@eslint/plugin-kit`)
 
 ---
 
