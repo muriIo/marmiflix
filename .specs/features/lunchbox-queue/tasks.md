@@ -710,15 +710,16 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] Polls `GET /api/queue` every 2000ms
-- [ ] Pauses while `document.hidden` is true, resumes (with an immediate poll) on visibility regain
-- [ ] Computes a client/server clock offset from each response's `serverTime`, exposed so countdowns can be computed as `deadline - (serverTime + elapsed)` rather than from the client clock alone
-- [ ] Unit tests (fake timers + mocked fetch): fires at the expected 2000ms cadence, stops firing while hidden, resumes on visibility change, offset calculation is correct given a mocked skewed `serverTime`
-- [ ] `npm run test:unit` passes
+- [x] Polls `GET /api/queue` every 2000ms
+- [x] Pauses while `document.hidden` is true, resumes (with an immediate poll) on visibility regain
+- [x] Computes a client/server clock offset from each response's `serverTime`, exposed so countdowns can be computed as `deadline - (serverTime + elapsed)` rather than from the client clock alone
+- [x] Unit tests (fake timers + mocked fetch): fires at the expected 2000ms cadence, stops firing while hidden, resumes on visibility change, offset calculation is correct given a mocked skewed `serverTime`
+- [x] `npm run test:unit` passes
 
 **Tests**: unit
 **Gate**: quick
 **Commit**: `feat(queue-client): implement useQueue polling core`
+**Status**: ✅ Complete (5 tests; exposed `now()` rather than a raw offset number, so consumer screens compute `deadline - now()` directly; fixed a cross-test interval leak by calling RTL's `cleanup()` in `afterEach` before switching back to real timers - without it, a still-mounted hook from a previous test kept polling under the next test's fake clock and inflated its call count)
 
 ---
 
