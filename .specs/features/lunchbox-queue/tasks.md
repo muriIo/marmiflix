@@ -914,8 +914,8 @@ T34 -> T35
 - Skill: `frontend-design`
 
 **Done when**:
-- [ ] pt-BR headline ("Sem conexão com o servidor"), reassurance copy that the queue position is safe, a retrying indicator, and a "Tentar agora" button calling `retryNow()`
-- [ ] Manually verified in the browser: with dev tools' network throttling set to "offline," the app shows this screen within ~15s and automatically recovers to the correct phase screen the moment the network is restored
+- [x] pt-BR headline ("Sem conexão com o servidor"), reassurance copy that the queue position is safe, a retrying indicator, and a "Tentar agora" button calling `retryNow()`
+- [x] Manually verified in the browser: with dev tools' network throttling set to "offline," the app shows this screen within ~15s and automatically recovers to the correct phase screen the moment the network is restored
 
 **Tests**: none
 **Gate**: build
