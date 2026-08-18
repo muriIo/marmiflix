@@ -959,8 +959,8 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] Documents: creating the Vercel project from this repo, installing the Upstash integration via the Vercel Marketplace and linking its env vars, adding `marmiflix.cruz.dev.br` as a custom domain in the Vercel project's Domains settings, and the DNS record to add at the `cruz.dev.br` registrar
-- [ ] Documents which env vars (from T7's `.env.example`) must be set in the Vercel project
+- [x] Documents: creating the Vercel project from this repo, installing the Upstash integration via the Vercel Marketplace and linking its env vars, adding `marmiflix.cruz.dev.br` as a custom domain in the Vercel project's Domains settings, and the DNS record to add at the `cruz.dev.br` registrar
+- [x] Documents which env vars (from T7's `.env.example`) must be set in the Vercel project
 
 **Tests**: none
 **Gate**: build
