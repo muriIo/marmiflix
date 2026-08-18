@@ -483,15 +483,16 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] `withQueueMutation(mutate)`: `getState` → `reapExpired(state, now)` → `mutate(state, now)` → bump `version` → `casWrite`; on CAS failure, retries from `getState` up to 5 times with a small random backoff
-- [ ] Throws `QueueBusyError` after 5 failed attempts
-- [ ] Integration test: two concurrent calls to `withQueueMutation` both attempting to join with different names against an empty queue - exactly one becomes `active`, the other lands in `waiting` at position 1, never both `active` (QUEUE-19)
-- [ ] Integration test: a mutation that runs while the active turn's deadline has already passed sees the reaped/promoted state, not the stale one
-- [ ] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
+- [x] `withQueueMutation(mutate)`: `getState` → `reapExpired(state, now)` → `mutate(state, now)` → bump `version` → `casWrite`; on CAS failure, retries from `getState` up to 5 times with a small random backoff
+- [x] Throws `QueueBusyError` after 5 failed attempts
+- [x] Integration test: two concurrent calls to `withQueueMutation` both attempting to join with different names against an empty queue - exactly one becomes `active`, the other lands in `waiting` at position 1, never both `active` (QUEUE-19)
+- [x] Integration test: a mutation that runs while the active turn's deadline has already passed sees the reaped/promoted state, not the stale one
+- [x] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
 
 **Tests**: integration
 **Gate**: full
 **Commit**: `feat(queue-store): implement withQueueMutation retry loop`
+**Status**: ✅ Complete (7 integration tests passed incl. QueueBusyError-after-5-retries via an injectable `storeInternals` seam - see SPEC_DEVIATION below - and the reap-sees-fresh-state case; full gate green). SPEC_DEVIATION: also fixed `vitest.integration.config.ts` to set `fileParallelism: false`. Reason: integration test *files* run in parallel by default and all share one live Redis key (`queue:state`), so concurrent files were stomping each other's `beforeEach` cleanup - this surfaced as a flaky failure in T15's own already-passing tests once a second integration file existed. Not a bug in `withQueueMutation`; a necessary fix to shared test infra every remaining integration test depends on. Also added an exported `storeInternals = { getState, casWrite }` indirection object in `store.ts` so the retry-exhaustion path could be tested deterministically (`vi.spyOn` forcing `casWrite` to always fail) instead of relying on a racy real concurrent-writer storm.
 
 ---
 
