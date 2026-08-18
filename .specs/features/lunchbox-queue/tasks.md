@@ -863,11 +863,11 @@ T34 -> T35
 - Skill: `frontend-design`
 
 **Done when**:
-- [ ] On entering this screen: triggers `navigator.vibrate(...)` guarded by feature detection (QUEUE-12), plays a confetti burst + Framer Motion entrance animation
-- [ ] Displays a live 20-second countdown (using the server-clock-offset math from T25) and an "É a minha vez!" (or similar) confirm button calling `confirmTurn()`
-- [ ] If the countdown reaches 0 with no confirmation, the next poll reflects the reap (QUEUE-11) and the shell (T28) naturally routes away from this screen - no client-side timeout logic duplicated here
-- [ ] All copy in pt-BR
-- [ ] Manually verified in the browser (including on a mobile device or emulator, to confirm the vibration actually fires) for both the joined-into-empty-queue path and the promoted-from-waiting path
+- [x] On entering this screen: triggers `navigator.vibrate(...)` guarded by feature detection (QUEUE-12), plays a confetti burst + Framer Motion entrance animation
+- [x] Displays a live 20-second countdown (using the server-clock-offset math from T25) and an "É a minha vez!" (or similar) confirm button calling `confirmTurn()`
+- [x] If the countdown reaches 0 with no confirmation, the next poll reflects the reap (QUEUE-11) and the shell (T28) naturally routes away from this screen - no client-side timeout logic duplicated here
+- [x] All copy in pt-BR
+- [x] Manually verified in the browser (including on a mobile device or emulator, to confirm the vibration actually fires) for both the joined-into-empty-queue path and the promoted-from-waiting path
 
 **Tests**: none
 **Gate**: build
