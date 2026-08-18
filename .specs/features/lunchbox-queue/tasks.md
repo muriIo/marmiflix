@@ -249,11 +249,12 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] `.env.example` lists `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` with comments: production values come from the Vercel Marketplace Upstash integration; local/test values point at the SRH proxy from T5
+- [x] `.env.example` lists `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` with comments: production values come from the Vercel Marketplace Upstash integration; local/test values point at the SRH proxy from T5
 
 **Tests**: none
 **Gate**: build
 **Commit**: `docs(setup): document required environment variables`
+**Status**: ✅ Complete (last task of Phase 1 - full gate: lint, typecheck, build, unit 1/1, integration 1/1, all green)
 
 ---
 
