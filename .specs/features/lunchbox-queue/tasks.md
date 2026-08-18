@@ -635,13 +635,14 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] Rate-limited by `id`, token-verified, same pattern as T20
-- [ ] Integration tests: happy path with promotion, happy path as last person (empty state), 404, 403, 409 wrong-phase, 429
-- [ ] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
+- [x] Rate-limited by `id`, token-verified, same pattern as T20
+- [x] Integration tests: happy path with promotion, happy path as last person (empty state), 404, 403, 409 wrong-phase, 429
+- [x] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
 
 **Tests**: integration
 **Gate**: full
 **Commit**: `feat(queue-api): add finish route`
+**Status**: ✅ Complete (6 integration tests passed, 31/31 total; full gate green; reused `authorizeEntry` from T20)
 
 ---
 
