@@ -814,11 +814,11 @@ T34 -> T35
 - Skill: `frontend-design`
 
 **Done when**:
-- [ ] Displays `queueCount` and `estimatedWaitMs` (formatted as minutes/seconds), or a "no wait - join now" message when the queue is empty
-- [ ] Name input + "Entrar na fila" button calling `join(name)`; button disabled while the name field is empty
-- [ ] Duplicate-name rejection (409) surfaces as a pt-BR toast: "Esse nome já está na fila"
-- [ ] All copy in pt-BR (QUEUE-23)
-- [ ] Manually verified in the browser: join from an empty queue lands on the turn-confirmation screen; join from an occupied queue lands on the waiting screen
+- [x] Displays `queueCount` and `estimatedWaitMs` (formatted as minutes/seconds), or a "no wait - join now" message when the queue is empty
+- [x] Name input + "Entrar na fila" button calling `join(name)`; button disabled while the name field is empty
+- [x] Duplicate-name rejection (409) surfaces as a pt-BR toast: "Esse nome já está na fila"
+- [x] All copy in pt-BR (QUEUE-23)
+- [x] Manually verified in the browser: join from an empty queue lands on the turn-confirmation screen; join from an occupied queue lands on the waiting screen
 
 **Tests**: none
 **Gate**: build
