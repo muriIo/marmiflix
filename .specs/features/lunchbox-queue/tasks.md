@@ -295,16 +295,17 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] `reapExpired(state, now)` returns `state` unchanged when `active` is null or not yet past its `deadline`
-- [ ] When `active.phase === 'confirming'` and expired: `active` is dropped entirely (QUEUE-11), and if `waiting` is non-empty, its head becomes the new `active` in `confirming` phase with `phaseStartedAt = now`, `deadline = now + 20_000`
-- [ ] When `active.phase === 'heating'` and expired: `active` is dropped (turn complete, QUEUE-15), same promotion behavior applies
-- [ ] When there is no one left to promote, `active` becomes `null` (QUEUE-17)
-- [ ] Unit tests cover all four branches above plus the untouched-state no-op case
-- [ ] `npm run test:unit` passes
+- [x] `reapExpired(state, now)` returns `state` unchanged when `active` is null or not yet past its `deadline`
+- [x] When `active.phase === 'confirming'` and expired: `active` is dropped entirely (QUEUE-11), and if `waiting` is non-empty, its head becomes the new `active` in `confirming` phase with `phaseStartedAt = now`, `deadline = now + 20_000`
+- [x] When `active.phase === 'heating'` and expired: `active` is dropped (turn complete, QUEUE-15), same promotion behavior applies
+- [x] When there is no one left to promote, `active` becomes `null` (QUEUE-17)
+- [x] Unit tests cover all four branches above plus the untouched-state no-op case
+- [x] `npm run test:unit` passes
 
 **Tests**: unit
 **Gate**: quick
 **Commit**: `feat(queue-engine): implement reapExpired state transition`
+**Status**: ✅ Complete (6 tests passed, 0 failed; also added an immutability test per design.md's "pure function" contract)
 
 ---
 
