@@ -200,15 +200,16 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] `docker-compose.test.yml` defines a `redis` service and an SRH service proxying it
-- [ ] `vitest.integration.config.ts` created, scoped to `**/*.integration.test.ts`
-- [ ] `package.json` `test:integration` script wired to it
-- [ ] `.env.test` points `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` at the local SRH proxy
-- [ ] After `docker compose -f docker-compose.test.yml up -d`, a smoke integration test does a `SET`/`GET` round trip through `@upstash/redis` against the local stack and passes
+- [x] `docker-compose.test.yml` defines a `redis` service and an SRH service proxying it
+- [x] `vitest.integration.config.ts` created, scoped to `**/*.integration.test.ts`
+- [x] `package.json` `test:integration` script wired to it
+- [x] `.env.test` points `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` at the local SRH proxy
+- [x] After `docker compose -f docker-compose.test.yml up -d`, a smoke integration test does a `SET`/`GET` round trip through `@upstash/redis` against the local stack and passes
 
 **Tests**: integration
 **Gate**: full
 **Commit**: `chore(test): configure redis integration test harness`
+**Status**: ✅ Complete (1 integration test passed, 0 failed, against a real Redis + serverless-redis-http via Docker)
 
 ---
 
