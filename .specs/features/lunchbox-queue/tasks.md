@@ -102,15 +102,16 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] `package.json` created with Next.js, React, TypeScript, and `dev`/`build`/`start` scripts
-- [ ] `tsconfig.json` (strict mode) and `next.config.ts` created
-- [ ] `app/layout.tsx` created with `<html lang="pt-BR">` and a minimal root layout (QUEUE-23 groundwork)
-- [ ] `app/globals.css` created
-- [ ] `npm run build` succeeds
+- [x] `package.json` created with Next.js, React, TypeScript, and `dev`/`build`/`start` scripts
+- [x] `tsconfig.json` (strict mode) and `next.config.ts` created
+- [x] `app/layout.tsx` created with `<html lang="pt-BR">` and a minimal root layout (QUEUE-23 groundwork)
+- [x] `app/globals.css` created
+- [x] `npm run build` succeeds
 
 **Tests**: none
 **Gate**: build
 **Commit**: `chore(setup): scaffold next.js app with typescript`
+**Status**: ✅ Complete (pinned `next@15.5.23` instead of the initially-installed 15.1.6 - that version had a critical CVE per `npm audit`; residual high-severity `sharp`/libvips advisories are image-optimization-path only and this app never uses `next/image`, so left unaddressed rather than forcing a Next 16 major bump out of this task's scope)
 
 ---
 
