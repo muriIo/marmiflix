@@ -561,14 +561,15 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] Rate-limited by request IP (no `id` exists yet at join time) before touching the store
-- [ ] Generates `id` + `sessionToken` server-side, stores only the hash, returns the token once in the response body alongside the resulting `QueueView`
-- [ ] Integration tests: happy path into `confirming` (empty queue), happy path into `waiting` (occupied queue), 409 on duplicate name, 400 on empty name, 429 when rate-limited
-- [ ] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
+- [x] Rate-limited by request IP (no `id` exists yet at join time) before touching the store
+- [x] Generates `id` + `sessionToken` server-side, stores only the hash, returns the token once in the response body alongside the resulting `QueueView`
+- [x] Integration tests: happy path into `confirming` (empty queue), happy path into `waiting` (occupied queue), 409 on duplicate name, 400 on empty name, 429 when rate-limited
+- [x] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
 
 **Tests**: integration
 **Gate**: full
 **Commit**: `feat(queue-api): add join route`
+**Status**: ✅ Complete (5 integration tests passed, 15/15 total; full gate green). SPEC_DEVIATION: made `lib/queue/redis-client.ts`'s Redis client lazy (a `Proxy` deferring instantiation to first real method call) instead of an eager module-load singleton. Reason: `next build`'s "collect page data" step imports every route module to statically analyze it (without executing handlers) - the eager `new Redis(...)` was throwing at build time since build-time has no `UPSTASH_REDIS_REST_URL`/`TOKEN` available, which would have blocked the Build gate for every route task from here on. All existing call sites (`store.ts`, `rate-limit.ts`) are unchanged - same `redis.method()` shape.
 
 ---
 
