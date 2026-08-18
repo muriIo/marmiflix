@@ -113,3 +113,35 @@ export function applyLeave(state: QueueState, input: IdentifiedInput): QueueStat
     waiting: state.waiting.filter((entry) => entry.id !== input.id),
   };
 }
+
+const HEATING_WINDOW_MS = 315_000; // 5:00 heating + 15s grace
+
+export function applyConfirmTurn(
+  state: QueueState,
+  input: IdentifiedInput,
+  now: number,
+): QueueState {
+  if (state.active?.id !== input.id) {
+    throw new NotFoundError(input.id);
+  }
+
+  if (state.active.phase !== "confirming") {
+    throw new WrongPhaseError(
+      `Cannot confirm turn: active entry is in "${state.active.phase}" phase, not "confirming"`,
+    );
+  }
+
+  if (state.active.sessionTokenHash !== input.sessionTokenHash) {
+    throw new ForbiddenError(input.id);
+  }
+
+  return {
+    ...state,
+    active: {
+      ...state.active,
+      phase: "heating",
+      phaseStartedAt: now,
+      deadline: now + HEATING_WINDOW_MS,
+    },
+  };
+}

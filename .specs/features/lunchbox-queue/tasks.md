@@ -376,14 +376,15 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] Transitions `active.phase` from `confirming` to `heating`, `phaseStartedAt = now`, `deadline = now + 315_000` (5:15), when `id`/token match the active `confirming` entry
-- [ ] Throws `NotFoundError` / `ForbiddenError` / `WrongPhaseError` for the corresponding mismatches
-- [ ] Unit tests cover the happy path and all three error branches
-- [ ] `npm run test:unit` passes
+- [x] Transitions `active.phase` from `confirming` to `heating`, `phaseStartedAt = now`, `deadline = now + 315_000` (5:15), when `id`/token match the active `confirming` entry
+- [x] Throws `NotFoundError` / `ForbiddenError` / `WrongPhaseError` for the corresponding mismatches
+- [x] Unit tests cover the happy path and all three error branches
+- [x] `npm run test:unit` passes
 
 **Tests**: unit
 **Gate**: quick
 **Commit**: `feat(queue-engine): implement applyConfirmTurn state transition`
+**Status**: ✅ Complete (5 new tests, 27 total passed, 0 failed)
 
 ---
 

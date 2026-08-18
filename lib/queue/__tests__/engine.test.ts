@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyJoin, applyLeave, reapExpired } from "../engine";
+import { applyConfirmTurn, applyJoin, applyLeave, reapExpired } from "../engine";
 import {
   DuplicateNameError,
   ForbiddenError,
@@ -10,6 +10,7 @@ import {
 } from "../types";
 
 const CONFIRM_WINDOW_MS = 20_000;
+const HEATING_WINDOW_MS = 315_000;
 
 function emptyState(): QueueState {
   return { version: 1, active: null, waiting: [] };
@@ -313,6 +314,68 @@ describe("applyLeave", () => {
     const state = waitingState();
     const snapshot = structuredClone(state);
     applyLeave(state, { id: "b1", sessionTokenHash: "hash-b1" });
+    expect(state).toEqual(snapshot);
+  });
+});
+
+describe("applyConfirmTurn", () => {
+  function confirmingState(): QueueState {
+    return {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "confirming",
+        phaseStartedAt: 1_000_000,
+        deadline: 1_000_000 + CONFIRM_WINDOW_MS,
+      },
+      waiting: [{ id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: 999_500 }],
+    };
+  }
+
+  it("transitions confirming to heating with a fresh 5:15 deadline (QUEUE-10)", () => {
+    const state = confirmingState();
+    const now = 1_000_010;
+    const result = applyConfirmTurn(state, { id: "a1", sessionTokenHash: "hash-a1" }, now);
+
+    expect(result.active).toEqual({
+      id: "a1",
+      name: "Ana",
+      sessionTokenHash: "hash-a1",
+      phase: "heating",
+      phaseStartedAt: now,
+      deadline: now + HEATING_WINDOW_MS,
+    });
+    expect(result.waiting).toEqual(state.waiting);
+  });
+
+  it("throws NotFoundError when id does not match the active entry", () => {
+    const state = confirmingState();
+    expect(() => applyConfirmTurn(state, { id: "b1", sessionTokenHash: "hash-b1" }, 1_000_010)).toThrow(
+      NotFoundError,
+    );
+  });
+
+  it("throws ForbiddenError when id matches but the token hash doesn't", () => {
+    const state = confirmingState();
+    expect(() =>
+      applyConfirmTurn(state, { id: "a1", sessionTokenHash: "wrong-hash" }, 1_000_010),
+    ).toThrow(ForbiddenError);
+  });
+
+  it("throws WrongPhaseError when the active entry is already heating", () => {
+    const state = confirmingState();
+    state.active = { ...state.active!, phase: "heating" };
+    expect(() => applyConfirmTurn(state, { id: "a1", sessionTokenHash: "hash-a1" }, 1_000_010)).toThrow(
+      WrongPhaseError,
+    );
+  });
+
+  it("does not mutate the input state object", () => {
+    const state = confirmingState();
+    const snapshot = structuredClone(state);
+    applyConfirmTurn(state, { id: "a1", sessionTokenHash: "hash-a1" }, 1_000_010);
     expect(state).toEqual(snapshot);
   });
 });
