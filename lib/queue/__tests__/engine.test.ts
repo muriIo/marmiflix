@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { applyJoin, reapExpired } from "../engine";
-import { DuplicateNameError, ValidationError, type QueueState } from "../types";
+import { applyJoin, applyLeave, reapExpired } from "../engine";
+import {
+  DuplicateNameError,
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+  WrongPhaseError,
+  type QueueState,
+} from "../types";
 
 const CONFIRM_WINDOW_MS = 20_000;
 
@@ -250,6 +257,62 @@ describe("applyJoin", () => {
     const state = emptyState();
     const snapshot = structuredClone(state);
     applyJoin(state, { name: "Ana", id: "a1", sessionTokenHash: "hash-a1" }, now);
+    expect(state).toEqual(snapshot);
+  });
+});
+
+describe("applyLeave", () => {
+  function waitingState(): QueueState {
+    return {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "heating",
+        phaseStartedAt: 1_000_000,
+        deadline: 1_300_000,
+      },
+      waiting: [
+        { id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: 999_500 },
+        { id: "c1", name: "Carla", sessionTokenHash: "hash-c1", joinedAt: 999_900 },
+      ],
+    };
+  }
+
+  it("removes the matching waiting entry when id and token hash match (QUEUE-06)", () => {
+    const state = waitingState();
+    const result = applyLeave(state, { id: "b1", sessionTokenHash: "hash-b1" });
+
+    expect(result.waiting).toEqual([{ id: "c1", name: "Carla", sessionTokenHash: "hash-c1", joinedAt: 999_900 }]);
+    expect(result.active).toEqual(state.active);
+  });
+
+  it("throws NotFoundError when id matches nothing", () => {
+    const state = waitingState();
+    expect(() => applyLeave(state, { id: "ghost", sessionTokenHash: "whatever" })).toThrow(
+      NotFoundError,
+    );
+  });
+
+  it("throws ForbiddenError when id matches a waiting entry but the token hash doesn't", () => {
+    const state = waitingState();
+    expect(() => applyLeave(state, { id: "b1", sessionTokenHash: "wrong-hash" })).toThrow(
+      ForbiddenError,
+    );
+  });
+
+  it("throws WrongPhaseError when id matches the active entry", () => {
+    const state = waitingState();
+    expect(() => applyLeave(state, { id: "a1", sessionTokenHash: "hash-a1" })).toThrow(
+      WrongPhaseError,
+    );
+  });
+
+  it("does not mutate the input state object", () => {
+    const state = waitingState();
+    const snapshot = structuredClone(state);
+    applyLeave(state, { id: "b1", sessionTokenHash: "hash-b1" });
     expect(state).toEqual(snapshot);
   });
 });

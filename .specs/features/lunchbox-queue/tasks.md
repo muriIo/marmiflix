@@ -349,16 +349,17 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] Removes the matching `waiting` entry when `id` + token hash match (QUEUE-06)
-- [ ] Throws `NotFoundError` when `id` matches nothing
-- [ ] Throws `ForbiddenError` when `id` matches but the token hash doesn't
-- [ ] Throws `WrongPhaseError` when `id` matches the `active` entry (leaving an active turn isn't supported - only "I'm Done")
-- [ ] Unit tests cover all four branches
-- [ ] `npm run test:unit` passes
+- [x] Removes the matching `waiting` entry when `id` + token hash match (QUEUE-06)
+- [x] Throws `NotFoundError` when `id` matches nothing
+- [x] Throws `ForbiddenError` when `id` matches but the token hash doesn't
+- [x] Throws `WrongPhaseError` when `id` matches the `active` entry (leaving an active turn isn't supported - only "I'm Done")
+- [x] Unit tests cover all four branches
+- [x] `npm run test:unit` passes
 
 **Tests**: unit
 **Gate**: quick
 **Commit**: `feat(queue-engine): implement applyLeave state transition`
+**Status**: ✅ Complete (5 new tests, 22 total passed, 0 failed)
 
 ---
 

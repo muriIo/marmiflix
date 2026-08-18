@@ -1,4 +1,11 @@
-import { DuplicateNameError, ValidationError, type QueueState } from "./types";
+import {
+  DuplicateNameError,
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+  WrongPhaseError,
+  type QueueState,
+} from "./types";
 
 const CONFIRM_WINDOW_MS = 20_000;
 
@@ -76,5 +83,33 @@ export function applyJoin(state: QueueState, input: JoinInput, now: number): Que
       ...state.waiting,
       { id: input.id, name: trimmedName, sessionTokenHash: input.sessionTokenHash, joinedAt: now },
     ],
+  };
+}
+
+export interface IdentifiedInput {
+  id: string;
+  sessionTokenHash: string;
+}
+
+export function applyLeave(state: QueueState, input: IdentifiedInput): QueueState {
+  if (state.active?.id === input.id) {
+    throw new WrongPhaseError(
+      "Cannot leave an active turn - only finishing it is supported",
+    );
+  }
+
+  const target = state.waiting.find((entry) => entry.id === input.id);
+
+  if (!target) {
+    throw new NotFoundError(input.id);
+  }
+
+  if (target.sessionTokenHash !== input.sessionTokenHash) {
+    throw new ForbiddenError(input.id);
+  }
+
+  return {
+    ...state,
+    waiting: state.waiting.filter((entry) => entry.id !== input.id),
   };
 }
