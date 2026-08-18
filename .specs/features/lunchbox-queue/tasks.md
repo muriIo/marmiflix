@@ -456,16 +456,17 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] CAS Lua script embedded as a string constant, matching design.md exactly (8 lines: read current version, compare, conditional `SET`)
-- [ ] `getState()` returns the current `QueueState` (default empty state with `version: 0` if the key doesn't exist yet)
-- [ ] `casWrite(key, expectedVersion, next)` runs the script via `redis.eval(...)` and returns whether it won
-- [ ] Integration test: `getState` → mutate in memory → `casWrite` succeeds → `getState` reflects the change
-- [ ] Integration test: `casWrite` with a stale `expectedVersion` returns `false` and leaves the stored state untouched
-- [ ] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
+- [x] CAS Lua script embedded as a string constant, matching design.md exactly (8 lines: read current version, compare, conditional `SET`)
+- [x] `getState()` returns the current `QueueState` (default empty state with `version: 0` if the key doesn't exist yet)
+- [x] `casWrite(key, expectedVersion, next)` runs the script via `redis.eval(...)` and returns whether it won
+- [x] Integration test: `getState` → mutate in memory → `casWrite` succeeds → `getState` reflects the change
+- [x] Integration test: `casWrite` with a stale `expectedVersion` returns `false` and leaves the stored state untouched
+- [x] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
 
 **Tests**: integration
 **Gate**: full
 **Commit**: `feat(queue-store): implement cas lua script and store primitives`
+**Status**: ✅ Complete (4 integration tests passed incl. the pre-existing smoke test; full gate green - lint, typecheck, build, unit 43/43, integration 4/4)
 
 ---
 
