@@ -659,15 +659,16 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] Accepts an optional `id` query param to shape the viewer-specific parts of the response; works with no `id` (anonymous landing view)
-- [ ] Always reaps expired turns before building the response (a poll from any client makes the timeout visible to everyone within the poll interval - QUEUE-18)
-- [ ] Response includes `serverTime`
-- [ ] Integration tests: anonymous landing view (count + ETA), waiting-visitor view (position, ETA, namesAhead), active-visitor view (phase, deadline), reap-on-read makes an expired turn disappear on the very next call with no other action taken
-- [ ] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
+- [x] Accepts an optional `id` query param to shape the viewer-specific parts of the response; works with no `id` (anonymous landing view)
+- [x] Always reaps expired turns before building the response (a poll from any client makes the timeout visible to everyone within the poll interval - QUEUE-18)
+- [x] Response includes `serverTime`
+- [x] Integration tests: anonymous landing view (count + ETA), waiting-visitor view (position, ETA, namesAhead), active-visitor view (phase, deadline), reap-on-read makes an expired turn disappear on the very next call with no other action taken
+- [x] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
 
 **Tests**: integration
 **Gate**: full
 **Commit**: `feat(queue-api): add queue read route with reap-on-read`
+**Status**: ✅ Complete (4 integration tests passed, 35/35 total; full Build gate green - lint, typecheck, build all 5 routes, unit 52/52, integration 35/35). Note: one test iteration caught my own test-authoring mistake (expected `namesAhead` to include the currently-active person) rather than an implementation bug - corrected against T14's already-established, already-unit-tested semantics (namesAhead only counts people within the `waiting` list).
 
 ---
 
