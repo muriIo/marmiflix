@@ -128,13 +128,14 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] `tailwind.config.ts` and `postcss.config.js` created
-- [ ] `app/globals.css` imports Tailwind's layers
-- [ ] `npm run build` succeeds with a Tailwind utility class rendering correctly in `app/layout.tsx`
+- [x] `tailwind.config.ts` and `postcss.config.js` created
+- [x] `app/globals.css` imports Tailwind's layers
+- [x] `npm run build` succeeds with a Tailwind utility class rendering correctly in `app/layout.tsx`
 
 **Tests**: none
 **Gate**: build
 **Commit**: `chore(setup): configure tailwind css`
+**Status**: ✅ Complete (verified the `antialiased` class actually landed in `.next/static/css/*.css`, not just that the build exited 0)
 
 ---
 
