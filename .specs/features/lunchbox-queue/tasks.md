@@ -535,15 +535,16 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] `generateSessionToken()` returns `crypto.randomBytes(32).toString('base64url')`
-- [ ] `hashToken(token)` returns `sha256(token)` hex digest
-- [ ] `verifyToken(token, storedHash)` compares via `crypto.timingSafeEqual` on fixed-length buffers, safely returning `false` (not throwing) when lengths differ
-- [ ] Unit tests: correct token verifies true, wrong token verifies false, empty/malformed input verifies false without throwing
-- [ ] `npm run test:unit` passes
+- [x] `generateSessionToken()` returns `crypto.randomBytes(32).toString('base64url')`
+- [x] `hashToken(token)` returns `sha256(token)` hex digest
+- [x] `verifyToken(token, storedHash)` compares via `crypto.timingSafeEqual` on fixed-length buffers, safely returning `false` (not throwing) when lengths differ
+- [x] Unit tests: correct token verifies true, wrong token verifies false, empty/malformed input verifies false without throwing
+- [x] `npm run test:unit` passes
 
 **Tests**: unit
 **Gate**: quick
 **Commit**: `feat(queue-api): implement session token generation and verification`
+**Status**: ✅ Complete (9 unit tests passed, 52/52 total; length-mismatch and non-hex storedHash both verified to return false without throwing)
 
 ---
 
