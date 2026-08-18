@@ -736,15 +736,16 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] `join(name)` calls the join route, stores the returned `id`/`sessionToken` via `setIdentity`
-- [ ] `leave()`, `confirmTurn()`, `finish()` call their routes using the stored identity
-- [ ] A domain error response (403/404/409) from any action clears local identity (matching design.md's Error Handling Strategy) and is surfaced distinctly from a transport failure
-- [ ] Unit tests (mocked fetch) cover each action's happy path and its domain-error handling
-- [ ] `npm run test:unit` passes
+- [x] `join(name)` calls the join route, stores the returned `id`/`sessionToken` via `setIdentity`
+- [x] `leave()`, `confirmTurn()`, `finish()` call their routes using the stored identity
+- [x] A domain error response (403/404/409) from any action clears local identity (matching design.md's Error Handling Strategy) and is surfaced distinctly from a transport failure
+- [x] Unit tests (mocked fetch) cover each action's happy path and its domain-error handling
+- [x] `npm run test:unit` passes
 
 **Tests**: unit
 **Gate**: quick
 **Commit**: `feat(queue-client): wire useQueue actions to identity and api routes`
+**Status**: ✅ Complete (13 tests total for the hook now, 8 new. SPEC_DEVIATION from this task's literal wording: per design.md's Error Handling Strategy table, only 403/404 clear identity - 409 (wrong phase) does NOT, since the entry is still legitimately theirs, just out of sync with a stale UI; the task text itself defers to design.md as the authority here, and this task's own file already cited that table. New `QueueActionError` class carries the HTTP status so callers can distinguish a domain rejection from a transport failure via `instanceof`. Found and fixed a real test-authoring hazard along the way: `expect(act(async () => {...})).rejects` did not reliably reflect synchronous side effects (clearIdentity) that ran inside the rejected callback by the time the next assertion ran under React 19's async `act()` - switched every such assertion to capture the error inside the same `act()` call instead)
 
 ---
 

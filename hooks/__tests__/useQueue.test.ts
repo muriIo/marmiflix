@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useQueue } from "../useQueue";
+import { getIdentity, setIdentity } from "../../lib/identity";
+import { QueueActionError, useQueue } from "../useQueue";
 
 function jsonResponse(body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -139,5 +140,194 @@ describe("useQueue polling core (QUEUE-18)", () => {
     const estimated = result.current.now();
     expect(estimated).toBeGreaterThanOrEqual(clientNow + skewMs);
     expect(estimated).toBeLessThan(clientNow + skewMs + 1000);
+  });
+});
+
+function jsonError(status: number, message: string): Response {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+interface ActionHandlers {
+  join?: () => Response;
+  leave?: () => Response | Promise<Response>;
+  confirmTurn?: () => Response | Promise<Response>;
+  finish?: () => Response | Promise<Response>;
+}
+
+function createFetchMock(handlers: ActionHandlers = {}) {
+  return vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+    const url = input.toString();
+    const method = init?.method ?? "GET";
+
+    if (method === "GET") {
+      return jsonResponse(baseView());
+    }
+    if (url.endsWith("/api/queue/join")) {
+      return (handlers.join ?? (() => jsonResponse({ id: "v1", sessionToken: "tok", view: baseView() })))();
+    }
+    if (url.endsWith("/api/queue/leave")) {
+      return (handlers.leave ?? (() => jsonResponse({ ok: true })))();
+    }
+    if (url.endsWith("/api/queue/confirm-turn")) {
+      return (handlers.confirmTurn ?? (() => jsonResponse({ ok: true })))();
+    }
+    if (url.endsWith("/api/queue/finish")) {
+      return (handlers.finish ?? (() => jsonResponse({ ok: true })))();
+    }
+    throw new Error(`unhandled fetch in test: ${method} ${url}`);
+  });
+}
+
+// `expect(act(...)).rejects` does not reliably surface the settled state of
+// synchronous side effects (like clearIdentity()) that ran inside the
+// rejected callback by the time the assertion after it runs, under React 19's
+// async act() - capturing the error inside the same act() call and asserting
+// on it there sidesteps that ordering hazard.
+async function captureError(action: () => Promise<unknown>): Promise<unknown> {
+  let caught: unknown;
+  await act(async () => {
+    try {
+      await action();
+    } catch (error) {
+      caught = error;
+    }
+  });
+  return caught;
+}
+
+describe("useQueue actions (QUEUE-02/03/06/10/14)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    setDocumentHidden(false);
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("join() stores the returned id/sessionToken via setIdentity on the happy path", async () => {
+    const fetchMock = createFetchMock({
+      join: () => jsonResponse({ id: "visitor-1", sessionToken: "tok-1", view: baseView() }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = await renderAndFlush();
+
+    await act(async () => {
+      await result.current.actions.join("Ana");
+    });
+
+    expect(getIdentity()).toEqual({ id: "visitor-1", name: "Ana", sessionToken: "tok-1" });
+  });
+
+  it("join() throws a QueueActionError on a duplicate-name 409 and does not store identity", async () => {
+    const fetchMock = createFetchMock({
+      join: () => jsonError(409, 'Esse nome já está na fila: "Ana"'),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = await renderAndFlush();
+
+    const error = await captureError(() => result.current.actions.join("Ana"));
+
+    expect(error).toMatchObject({ status: 409, message: 'Esse nome já está na fila: "Ana"' });
+    expect(getIdentity()).toBeNull();
+  });
+
+  it("leave() sends the stored identity's id/sessionToken to the leave route", async () => {
+    setIdentity({ id: "visitor-1", name: "Ana", sessionToken: "tok-1" });
+    const fetchMock = createFetchMock();
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = await renderAndFlush();
+
+    await act(async () => {
+      await result.current.actions.leave();
+    });
+
+    const leaveCall = fetchMock.mock.calls.find(([url]) => url.toString().endsWith("/leave"));
+    expect(leaveCall).toBeDefined();
+    const [, init] = leaveCall as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({ id: "visitor-1", sessionToken: "tok-1" });
+  });
+
+  it("does nothing and does not call fetch when there is no stored identity", async () => {
+    const fetchMock = createFetchMock();
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = await renderAndFlush();
+    fetchMock.mockClear();
+
+    await act(async () => {
+      await result.current.actions.leave();
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("a 404 (entry already gone) clears local identity", async () => {
+    setIdentity({ id: "visitor-1", name: "Ana", sessionToken: "tok-1" });
+    const fetchMock = createFetchMock({ leave: () => jsonError(404, "Entrada não encontrada") });
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = await renderAndFlush();
+
+    const error = await captureError(() => result.current.actions.leave());
+
+    expect(error).toBeInstanceOf(QueueActionError);
+    expect(getIdentity()).toBeNull();
+  });
+
+  it("a 403 (session token mismatch) clears local identity", async () => {
+    setIdentity({ id: "visitor-1", name: "Ana", sessionToken: "tok-1" });
+    const fetchMock = createFetchMock({ finish: () => jsonError(403, "Sessão inválida") });
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = await renderAndFlush();
+
+    const error = await captureError(() => result.current.actions.finish());
+
+    expect(error).toMatchObject({ status: 403 });
+    expect(getIdentity()).toBeNull();
+  });
+
+  it("a 409 (wrong phase) does NOT clear identity - the entry is still theirs, just out of sync", async () => {
+    setIdentity({ id: "visitor-1", name: "Ana", sessionToken: "tok-1" });
+    const fetchMock = createFetchMock({
+      confirmTurn: () => jsonError(409, "Não é o momento certo"),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = await renderAndFlush();
+
+    const error = await captureError(() => result.current.actions.confirmTurn());
+
+    expect(error).toMatchObject({ status: 409 });
+    expect(getIdentity()).toEqual({ id: "visitor-1", name: "Ana", sessionToken: "tok-1" });
+  });
+
+  it("a transport failure rejects with an error that is NOT a QueueActionError, and does not clear identity", async () => {
+    setIdentity({ id: "visitor-1", name: "Ana", sessionToken: "tok-1" });
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const method = init?.method ?? "GET";
+      if (method === "GET") {
+        return jsonResponse(baseView());
+      }
+      throw new TypeError("Failed to fetch");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = await renderAndFlush();
+
+    let caught: unknown;
+    await act(async () => {
+      try {
+        await result.current.actions.finish();
+      } catch (error) {
+        caught = error;
+      }
+    });
+
+    expect(caught).toBeInstanceOf(TypeError);
+    expect(caught).not.toBeInstanceOf(QueueActionError);
+    expect(getIdentity()).toEqual({ id: "visitor-1", name: "Ana", sessionToken: "tok-1" });
   });
 });
