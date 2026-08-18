@@ -611,13 +611,14 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] Rate-limited by `id`, token-verified, same pattern as T20
-- [ ] Integration tests: happy path (confirming → heating), 404, 403, 409 wrong-phase, 429
-- [ ] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
+- [x] Rate-limited by `id`, token-verified, same pattern as T20
+- [x] Integration tests: happy path (confirming → heating), 404, 403, 409 wrong-phase, 429
+- [x] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
 
 **Tests**: integration
 **Gate**: full
 **Commit**: `feat(queue-api): add confirm-turn route`
+**Status**: ✅ Complete (5 integration tests passed, 25/25 total; full gate green; reused `authorizeEntry` from T20)
 
 ---
 
