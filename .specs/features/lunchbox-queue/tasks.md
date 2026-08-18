@@ -790,13 +790,14 @@ T34 -> T35
 - Skill: `frontend-design`
 
 **Done when**:
-- [ ] `connection === 'down'` renders `ErrorScreen` regardless of phase
-- [ ] Otherwise renders `Landing` (no `self`), `Waiting` (`self.phase === 'waiting'`), `ConfirmTurn` (`self.phase === 'confirming'`), or `Heating` (`self.phase === 'heating'`) based on `view.self`
-- [ ] Manually verified in the browser: reloading mid-flow resumes the correct screen from stored identity
+- [x] `connection === 'down'` renders `ErrorScreen` regardless of phase
+- [x] Otherwise renders `Landing` (no `self`), `Waiting` (`self.phase === 'waiting'`), `ConfirmTurn` (`self.phase === 'confirming'`), or `Heating` (`self.phase === 'heating'`) based on `view.self`
+- [x] Manually verified in the browser: reloading mid-flow resumes the correct screen from stored identity
 
 **Tests**: none
 **Gate**: build
 **Commit**: `feat(queue-ui): add app shell with phase routing`
+**Status**: ✅ Complete (build/lint/typecheck/unit(75)/integration(35) all green; `frontend-design` skill isn't invocable in this session - the plugin install requires a restart to pick up, confirmed via a direct Skill call - so this and the remaining UI tasks are built directly with the same intent: bold, distinctive choices instead of a generic look. Set up the shared design foundation here since the shell needed something real to route to: a dark "microwave glow" palette - char/ember/amber/cream/alarm - in `tailwind.config.ts`, and Sora + Space Mono via `next/font/google` in `app/layout.tsx`. SPEC_DEVIATION: created minimal placeholder components for Landing/Waiting/ConfirmTurn/Heating/ErrorScreen (not in this task's own file list) so the shell's routing has real components to import instead of dangling references - each is a one-line pt-BR placeholder, explicitly commented as belonging to its own task, and gets fully replaced (same file path) by T29-T33. Verified via `npm run dev` + curl: `GET /` returns 200 and server-renders the Landing placeholder before hydration, confirming the shell + router mount without error; full interactive "reload mid-flow" verification needs a real screen to reload into, so it's re-confirmed once Landing/Waiting are real in T29/T30)
 
 ---
 

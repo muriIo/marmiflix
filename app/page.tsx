@@ -1,3 +1,38 @@
+"use client";
+
+import { ConfirmTurn } from "../components/queue/ConfirmTurn";
+import { ErrorScreen } from "../components/queue/ErrorScreen";
+import { Heating } from "../components/queue/Heating";
+import { Landing } from "../components/queue/Landing";
+import { Waiting } from "../components/queue/Waiting";
+import { useQueue, type UseQueueResult } from "../hooks/useQueue";
+
+function PhaseRouter({ queue }: { queue: UseQueueResult }) {
+  if (queue.connection === "down") {
+    return <ErrorScreen queue={queue} />;
+  }
+
+  const phase = queue.view?.self?.phase;
+  if (phase === "waiting") {
+    return <Waiting queue={queue} />;
+  }
+  if (phase === "confirming") {
+    return <ConfirmTurn queue={queue} />;
+  }
+  if (phase === "heating") {
+    return <Heating queue={queue} />;
+  }
+  return <Landing queue={queue} />;
+}
+
 export default function Home() {
-  return <p>Fila da Marmita</p>;
+  const queue = useQueue();
+
+  return (
+    <main className="min-h-screen flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md">
+        <PhaseRouter queue={queue} />
+      </div>
+    </main>
+  );
 }
