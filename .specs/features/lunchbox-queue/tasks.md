@@ -176,13 +176,14 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] `vitest.unit.config.ts` created, scoped to `**/*.test.ts` and excluding `**/*.integration.test.ts`
-- [ ] `package.json` `test:unit` script wired to it
-- [ ] A smoke test (`lib/__tests__/smoke.test.ts`) passes, proving the harness runs
+- [x] `vitest.unit.config.ts` created, scoped to `**/*.test.ts` and excluding `**/*.integration.test.ts`
+- [x] `package.json` `test:unit` script wired to it
+- [x] A smoke test (`lib/__tests__/smoke.test.ts`) passes, proving the harness runs
 
 **Tests**: unit
 **Gate**: quick
 **Commit**: `chore(test): configure vitest for unit tests`
+**Status**: ✅ Complete (1 test passed, 0 failed; also bumped vitest to 3.2.7 to clear a critical RCE advisory in the API server)
 
 ---
 
