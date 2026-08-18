@@ -685,14 +685,15 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] `getIdentity()`, `setIdentity({ id, name, sessionToken })`, `clearIdentity()` implemented
-- [ ] `getIdentity()` returns `null` (not a throw) on missing or corrupt/malformed stored JSON
-- [ ] Unit tests cover round-trip set→get, clear, missing storage, corrupt storage
-- [ ] `npm run test:unit` passes
+- [x] `getIdentity()`, `setIdentity({ id, name, sessionToken })`, `clearIdentity()` implemented
+- [x] `getIdentity()` returns `null` (not a throw) on missing or corrupt/malformed stored JSON
+- [x] Unit tests cover round-trip set→get, clear, missing storage, corrupt storage
+- [x] `npm run test:unit` passes
 
 **Tests**: unit
 **Gate**: quick
 **Commit**: `feat(queue-client): implement local identity storage`
+**Status**: ✅ Complete (5 tests; added `jsdom` + `@testing-library/react`/`@testing-library/dom` as devDependencies - required infra for any DOM/localStorage/hook test in this and the next 3 tasks, applied per-file via a `// @vitest-environment jsdom` pragma so the rest of the unit suite stays on the faster `node` environment)
 
 ---
 
