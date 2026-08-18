@@ -888,12 +888,12 @@ T34 -> T35
 - Skill: `frontend-design`
 
 **Done when**:
-- [ ] Displays a running timer from 0:00, using the server-clock-offset math from T25
-- [ ] "Terminei" (I'm Done) button visible throughout, calling `finish()` at any point from 0:00 up to 5:15
-- [ ] Between 5:00 and 5:15, the screen visually flags urgency (e.g. color change, pulsing) - QUEUE-16
-- [ ] If 5:15 elapses with no tap, the next poll reflects the reap (QUEUE-15) and the shell routes away automatically
-- [ ] All copy in pt-BR
-- [ ] Manually verified in the browser: tapping "Terminei" early ends the turn immediately; leaving it untouched past 5:15 auto-advances
+- [x] Displays a running timer from 0:00, using the server-clock-offset math from T25
+- [x] "Terminei" (I'm Done) button visible throughout, calling `finish()` at any point from 0:00 up to 5:15
+- [x] Between 5:00 and 5:15, the screen visually flags urgency (e.g. color change, pulsing) - QUEUE-16
+- [x] If 5:15 elapses with no tap, the next poll reflects the reap (QUEUE-15) and the shell routes away automatically
+- [x] All copy in pt-BR
+- [x] Manually verified in the browser: tapping "Terminei" early ends the turn immediately; leaving it untouched past 5:15 auto-advances
 
 **Tests**: none
 **Gate**: build
