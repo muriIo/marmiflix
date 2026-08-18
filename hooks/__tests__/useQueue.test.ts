@@ -331,3 +331,148 @@ describe("useQueue actions (QUEUE-02/03/06/10/14)", () => {
     expect(getIdentity()).toEqual({ id: "visitor-1", name: "Ana", sessionToken: "tok-1" });
   });
 });
+
+describe("useQueue network-health signal", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    setDocumentHidden(false);
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("retries at exactly 2s -> 4s -> 8s -> 16s -> 30s (capped) on sustained transport failure", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError("network down"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await renderAndFlush(); // attempt #1 (fails)
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    }); // #2, delay after failure #1
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4000);
+    }); // #3, delay after failure #2
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8000);
+    }); // #4, delay after failure #3
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(16000);
+    }); // #5, delay after failure #4
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30000);
+    }); // #6, delay after failure #5 (cap reached)
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+
+    // Prove the cap holds exactly at 30s, not "eventually": one tick short does nothing yet.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(29999);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(7);
+  });
+
+  it("flips connection to 'down' exactly at the 4th consecutive transport failure, staying 'ok' before that", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError("network down"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = await renderAndFlush(); // failure #1
+    expect(result.current.connection).toBe("ok");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    }); // failure #2
+    expect(result.current.connection).toBe("ok");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4000);
+    }); // failure #3
+    expect(result.current.connection).toBe("ok");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8000);
+    }); // failure #4
+    expect(result.current.connection).toBe("down");
+  });
+
+  it("a domain error (429 rate-limited) from an action does NOT count toward the down threshold", async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const method = init?.method ?? "GET";
+      if (method === "GET") {
+        return jsonResponse(baseView());
+      }
+      return jsonError(429, "Muitas tentativas");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    setIdentity({ id: "visitor-1", name: "Ana", sessionToken: "tok-1" });
+    const { result } = await renderAndFlush();
+
+    for (let i = 0; i < 5; i += 1) {
+      await act(async () => {
+        await result.current.actions.leave().catch(() => {});
+      });
+    }
+
+    expect(result.current.connection).toBe("ok");
+  });
+
+  it("connection recovers to 'ok' automatically on the next successful poll", async () => {
+    let shouldFail = true;
+    const fetchMock = vi.fn(async () => {
+      if (shouldFail) {
+        throw new TypeError("network down");
+      }
+      return jsonResponse(baseView());
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = await renderAndFlush(); // failure #1
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    }); // failure #2
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4000);
+    }); // failure #3
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8000);
+    }); // failure #4 -> down
+    expect(result.current.connection).toBe("down");
+
+    shouldFail = false;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(16000);
+    }); // next attempt succeeds
+    expect(result.current.connection).toBe("ok");
+  });
+
+  it("retryNow() triggers an immediate attempt, bypassing the remaining backoff wait", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError("network down"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = await renderAndFlush(); // failure #1, next retry scheduled in 2000ms
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      result.current.retryNow();
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});

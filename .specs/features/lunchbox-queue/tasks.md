@@ -762,17 +762,18 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] Every queue API call (poll and actions alike) goes through one shared request wrapper
-- [ ] A transport failure (network error, timeout, 5xx) increments `consecutiveFailures` and drives the shared backoff (2s → 4s → 8s → 16s → capped at 30s); a domain response (403/404/409/429) does not increment it
-- [ ] Any success resets `consecutiveFailures` to 0 and backoff to 2s
-- [ ] `connection` flips to `'down'` at `consecutiveFailures >= 4`, back to `'ok'` on the next success
-- [ ] A manual `retryNow()` triggers an immediate attempt, bypassing the remaining backoff wait
-- [ ] Unit tests (fake timers + mocked fetch failures): backoff sequence is exactly 2/4/8/16/30s; `connection` flips to `'down'` at the 4th consecutive transport failure; a domain error does NOT count toward the threshold; `connection` recovers automatically on the next success; `retryNow()` fires immediately
-- [ ] `npm run test:unit` passes
+- [x] Every queue API call (poll and actions alike) goes through one shared request wrapper
+- [x] A transport failure (network error, timeout, 5xx) increments `consecutiveFailures` and drives the shared backoff (2s → 4s → 8s → 16s → capped at 30s); a domain response (403/404/409/429) does not increment it
+- [x] Any success resets `consecutiveFailures` to 0 and backoff to 2s
+- [x] `connection` flips to `'down'` at `consecutiveFailures >= 4`, back to `'ok'` on the next success
+- [x] A manual `retryNow()` triggers an immediate attempt, bypassing the remaining backoff wait
+- [x] Unit tests (fake timers + mocked fetch failures): backoff sequence is exactly 2/4/8/16/30s; `connection` flips to `'down'` at the 4th consecutive transport failure; a domain error does NOT count toward the threshold; `connection` recovers automatically on the next success; `retryNow()` fires immediately
+- [x] `npm run test:unit` passes
 
 **Tests**: unit
 **Gate**: quick
 **Commit**: `feat(queue-client): add network-health signal with exponential backoff`
+**Status**: ✅ Complete (18 tests total for the hook, 5 new; rewrote the polling loop from a fixed `setInterval` to a self-rescheduling `setTimeout`, since the delay between attempts now varies with the backoff schedule instead of staying constant - verified against the exact 2/4/8/16/30s sequence with sub-tick boundary checks, not just "eventually fires". `callQueueApi` moved from a module-level function into the hook itself so it can feed the same `consecutiveFailuresRef`/`connection` state that the poll uses)
 
 ---
 
