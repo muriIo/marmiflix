@@ -322,16 +322,17 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] Throws `DuplicateNameError` when the trimmed, case-insensitive name matches any active or waiting entry (QUEUE-20)
-- [ ] Throws a validation error when the name is empty/whitespace-only (QUEUE-04)
-- [ ] When `active === null` and `waiting` is empty: new entry becomes `active` in `confirming` phase immediately, `deadline = now + 20_000` (QUEUE-02)
-- [ ] Otherwise: new entry appended to the end of `waiting` (QUEUE-03)
-- [ ] Unit tests cover: empty-queue fast path, normal append, duplicate name (exact + case/whitespace variants), empty name
-- [ ] `npm run test:unit` passes
+- [x] Throws `DuplicateNameError` when the trimmed, case-insensitive name matches any active or waiting entry (QUEUE-20)
+- [x] Throws a validation error when the name is empty/whitespace-only (QUEUE-04)
+- [x] When `active === null` and `waiting` is empty: new entry becomes `active` in `confirming` phase immediately, `deadline = now + 20_000` (QUEUE-02)
+- [x] Otherwise: new entry appended to the end of `waiting` (QUEUE-03)
+- [x] Unit tests cover: empty-queue fast path, normal append, duplicate name (exact + case/whitespace variants), empty name
+- [x] `npm run test:unit` passes
 
 **Tests**: unit
 **Gate**: quick
 **Commit**: `feat(queue-engine): implement applyJoin state transition`
+**Status**: ✅ Complete (10 new tests, 17 total passed, 0 failed)
 
 ---
 
