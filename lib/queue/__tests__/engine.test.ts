@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyConfirmTurn, applyJoin, applyLeave, reapExpired } from "../engine";
+import { applyConfirmTurn, applyFinishHeating, applyJoin, applyLeave, reapExpired } from "../engine";
 import {
   DuplicateNameError,
   ForbiddenError,
@@ -376,6 +376,78 @@ describe("applyConfirmTurn", () => {
     const state = confirmingState();
     const snapshot = structuredClone(state);
     applyConfirmTurn(state, { id: "a1", sessionTokenHash: "hash-a1" }, 1_000_010);
+    expect(state).toEqual(snapshot);
+  });
+});
+
+describe("applyFinishHeating", () => {
+  function heatingState(): QueueState {
+    return {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "heating",
+        phaseStartedAt: 1_000_000,
+        deadline: 1_000_000 + HEATING_WINDOW_MS,
+      },
+      waiting: [{ id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: 999_500 }],
+    };
+  }
+
+  it("clears active and promotes the next waiting entry into confirming with a fresh deadline (QUEUE-14)", () => {
+    const state = heatingState();
+    const now = 1_000_030;
+    const result = applyFinishHeating(state, { id: "a1", sessionTokenHash: "hash-a1" }, now);
+
+    expect(result.active).toEqual({
+      id: "b1",
+      name: "Bruno",
+      sessionTokenHash: "hash-b1",
+      phase: "confirming",
+      phaseStartedAt: now,
+      deadline: now + CONFIRM_WINDOW_MS,
+    });
+    expect(result.waiting).toEqual([]);
+  });
+
+  it("leaves the queue empty when finishing as the last person (QUEUE-17)", () => {
+    const state = heatingState();
+    state.waiting = [];
+    const now = 1_000_030;
+    const result = applyFinishHeating(state, { id: "a1", sessionTokenHash: "hash-a1" }, now);
+
+    expect(result.active).toBeNull();
+    expect(result.waiting).toEqual([]);
+  });
+
+  it("throws NotFoundError when id does not match the active entry", () => {
+    const state = heatingState();
+    expect(() =>
+      applyFinishHeating(state, { id: "b1", sessionTokenHash: "hash-b1" }, 1_000_030),
+    ).toThrow(NotFoundError);
+  });
+
+  it("throws ForbiddenError when id matches but the token hash doesn't", () => {
+    const state = heatingState();
+    expect(() =>
+      applyFinishHeating(state, { id: "a1", sessionTokenHash: "wrong-hash" }, 1_000_030),
+    ).toThrow(ForbiddenError);
+  });
+
+  it("throws WrongPhaseError when the active entry is still confirming", () => {
+    const state = heatingState();
+    state.active = { ...state.active!, phase: "confirming" };
+    expect(() =>
+      applyFinishHeating(state, { id: "a1", sessionTokenHash: "hash-a1" }, 1_000_030),
+    ).toThrow(WrongPhaseError);
+  });
+
+  it("does not mutate the input state object", () => {
+    const state = heatingState();
+    const snapshot = structuredClone(state);
+    applyFinishHeating(state, { id: "a1", sessionTokenHash: "hash-a1" }, 1_000_030);
     expect(state).toEqual(snapshot);
   });
 });

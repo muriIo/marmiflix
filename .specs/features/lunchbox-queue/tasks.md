@@ -401,15 +401,16 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] Clears `active` and promotes the next `waiting` entry into `confirming` with a fresh deadline, when `id`/token match the active `heating` entry (QUEUE-14)
-- [ ] Leaves the queue in the empty state when there is no one to promote (QUEUE-17)
-- [ ] Throws `NotFoundError` / `ForbiddenError` / `WrongPhaseError` for the corresponding mismatches
-- [ ] Unit tests cover: finish with someone waiting (promotion), finish as the last person (empty state), all three error branches
-- [ ] `npm run test:unit` passes
+- [x] Clears `active` and promotes the next `waiting` entry into `confirming` with a fresh deadline, when `id`/token match the active `heating` entry (QUEUE-14)
+- [x] Leaves the queue in the empty state when there is no one to promote (QUEUE-17)
+- [x] Throws `NotFoundError` / `ForbiddenError` / `WrongPhaseError` for the corresponding mismatches
+- [x] Unit tests cover: finish with someone waiting (promotion), finish as the last person (empty state), all three error branches
+- [x] `npm run test:unit` passes
 
 **Tests**: unit
 **Gate**: quick
 **Commit**: `feat(queue-engine): implement applyFinishHeating state transition`
+**Status**: ✅ Complete (6 new tests, 33 total passed, 0 failed; extracted a shared `promoteNextToActive` helper reused by `reapExpired`, since both needed identical promotion logic)
 
 ---
 

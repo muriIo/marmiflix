@@ -21,11 +21,7 @@ function isNameTaken(state: QueueState, trimmedName: string): boolean {
   return state.waiting.some((entry) => normalizedName(entry.name) === target);
 }
 
-export function reapExpired(state: QueueState, now: number): QueueState {
-  if (!state.active || now <= state.active.deadline) {
-    return state;
-  }
-
+function promoteNextToActive(state: QueueState, now: number): QueueState {
   const [next, ...rest] = state.waiting;
 
   if (!next) {
@@ -44,6 +40,14 @@ export function reapExpired(state: QueueState, now: number): QueueState {
     },
     waiting: rest,
   };
+}
+
+export function reapExpired(state: QueueState, now: number): QueueState {
+  if (!state.active || now <= state.active.deadline) {
+    return state;
+  }
+
+  return promoteNextToActive(state, now);
 }
 
 export interface JoinInput {
@@ -144,4 +148,26 @@ export function applyConfirmTurn(
       deadline: now + HEATING_WINDOW_MS,
     },
   };
+}
+
+export function applyFinishHeating(
+  state: QueueState,
+  input: IdentifiedInput,
+  now: number,
+): QueueState {
+  if (state.active?.id !== input.id) {
+    throw new NotFoundError(input.id);
+  }
+
+  if (state.active.phase !== "heating") {
+    throw new WrongPhaseError(
+      `Cannot finish: active entry is in "${state.active.phase}" phase, not "heating"`,
+    );
+  }
+
+  if (state.active.sessionTokenHash !== input.sessionTokenHash) {
+    throw new ForbiddenError(input.id);
+  }
+
+  return promoteNextToActive(state, now);
 }
