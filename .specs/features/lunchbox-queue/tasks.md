@@ -586,14 +586,15 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] Rate-limited by `id` before touching the store
-- [ ] Verifies `sessionToken` via `verifyToken` before applying the mutation
-- [ ] Integration tests: happy path, 404 not-found, 403 forbidden (wrong token), 409 wrong-phase (targeting the active entry), 429 rate-limited
-- [ ] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
+- [x] Rate-limited by `id` before touching the store
+- [x] Verifies `sessionToken` via `verifyToken` before applying the mutation
+- [x] Integration tests: happy path, 404 not-found, 403 forbidden (wrong token), 409 wrong-phase (targeting the active entry), 429 rate-limited
+- [x] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
 
 **Tests**: integration
 **Gate**: full
 **Commit**: `feat(queue-api): add leave route`
+**Status**: ✅ Complete (5 integration tests passed, 20/20 total; full gate green). SPEC_DEVIATION: added a small shared `lib/queue/route-helpers.ts` (`authorizeEntry`) doing the common id-lookup + constant-time `verifyToken` gate (404/403) before any mutation. Reason: T21/T22 explicitly say "same pattern as T20" - this is genuine shared logic across three routes, not scope creep; each route still owns its own phase-specific domain-error handling after the gate.
 
 ---
 
