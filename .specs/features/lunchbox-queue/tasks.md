@@ -427,18 +427,19 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] For an anonymous/no-`viewerId` call: returns `queueCount` and `estimatedWaitMs` (= active turn's remaining time + 5 min per person ahead) - QUEUE-01
-- [ ] For a `viewerId` matching a `waiting` entry: returns their live `position` and the same `estimatedWaitMs` formula relative to their position - QUEUE-05
-- [ ] For a `viewerId` matching a `waiting` entry: `namesAhead` lists the display names of everyone ahead of them, in order, names only - QUEUE-21
-- [ ] For a `viewerId` matching the `active` entry: returns their `phase` and `deadline`
-- [ ] Every returned `QueueView`, for every viewer, never includes any other entry's `id`, `sessionTokenHash`, or raw token - asserted directly in a dedicated test
-- [ ] Response always includes `serverTime`
-- [ ] Unit tests cover all branches above
-- [ ] `npm run test:unit` passes
+- [x] For an anonymous/no-`viewerId` call: returns `queueCount` and `estimatedWaitMs` (= active turn's remaining time + 5 min per person ahead) - QUEUE-01
+- [x] For a `viewerId` matching a `waiting` entry: returns their live `position` and the same `estimatedWaitMs` formula relative to their position - QUEUE-05
+- [x] For a `viewerId` matching a `waiting` entry: `namesAhead` lists the display names of everyone ahead of them, in order, names only - QUEUE-21
+- [x] For a `viewerId` matching the `active` entry: returns their `phase` and `deadline`
+- [x] Every returned `QueueView`, for every viewer, never includes any other entry's `id`, `sessionTokenHash`, or raw token - asserted directly in a dedicated test
+- [x] Response always includes `serverTime`
+- [x] Unit tests cover all branches above
+- [x] `npm run test:unit` passes
 
 **Tests**: unit
 **Gate**: quick
 **Commit**: `feat(queue-engine): implement buildView with never-leak invariant`
+**Status**: ✅ Complete (10 new tests, 43 total unit passed; last task of Phase 2 - ran full Build gate: lint, typecheck, build, unit 43/43, integration 1/1, all green. Judgment call: a `viewerId` matching nobody, e.g. a since-reaped id, falls back to the anonymous shape rather than throwing - needed for graceful reap-on-read in the later GET route)
 
 ---
 
