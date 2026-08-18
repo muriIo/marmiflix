@@ -509,15 +509,16 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] `checkRateLimit(key, limit = 10, windowSeconds = 10)` increments a `ratelimit:{key}` Redis key (`INCR` + `EXPIRE` on first increment), returns `false` once the count exceeds `limit` within the window
-- [ ] Integration test: 10 calls within the window all return `true`, the 11th returns `false`
-- [ ] Integration test: after the window expires, the count resets and calls succeed again
-- [ ] Integration test: two different keys are rate-limited independently
-- [ ] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
+- [x] `checkRateLimit(key, limit = 10, windowSeconds = 10)` increments a `ratelimit:{key}` Redis key (`INCR` + `EXPIRE` on first increment), returns `false` once the count exceeds `limit` within the window
+- [x] Integration test: 10 calls within the window all return `true`, the 11th returns `false`
+- [x] Integration test: after the window expires, the count resets and calls succeed again
+- [x] Integration test: two different keys are rate-limited independently
+- [x] `docker compose -f docker-compose.test.yml up -d && npm run test:integration` passes
 
 **Tests**: integration
 **Gate**: full
 **Commit**: `feat(queue-store): implement redis-backed rate limiting`
+**Status**: ✅ Complete (10 integration tests passed across the suite, 3 new for this task; full gate green)
 
 ---
 
