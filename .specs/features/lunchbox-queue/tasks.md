@@ -226,12 +226,13 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] Exports a singleton `Redis` instance from `@upstash/redis`, reading `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`
-- [ ] Throws a clear error at import time if either env var is missing
+- [x] Exports a singleton `Redis` instance from `@upstash/redis`, reading `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`
+- [x] Throws a clear error at import time if either env var is missing
 
 **Tests**: none
 **Gate**: build
 **Commit**: `chore(queue): add redis client factory`
+**Status**: ✅ Complete (lint, typecheck, build, unit, and integration all green)
 
 ---
 
