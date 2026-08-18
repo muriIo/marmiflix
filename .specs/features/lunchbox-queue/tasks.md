@@ -839,10 +839,10 @@ T34 -> T35
 - Skill: `frontend-design`
 
 **Done when**:
-- [ ] Displays live `position`, `estimatedWaitMs`, and `namesAhead` (in order)
-- [ ] "Sair da fila" button calling `leave()`
-- [ ] All copy in pt-BR
-- [ ] Manually verified in the browser with two browser windows: joining from one updates the other's waiting view within ~2s
+- [x] Displays live `position`, `estimatedWaitMs`, and `namesAhead` (in order)
+- [x] "Sair da fila" button calling `leave()`
+- [x] All copy in pt-BR
+- [x] Manually verified in the browser with two browser windows: joining from one updates the other's waiting view within ~2s
 
 **Tests**: none
 **Gate**: build
