@@ -271,13 +271,14 @@ T34 -> T35
 - Skill: NONE
 
 **Done when**:
-- [ ] `Phase`, `WaitingEntry`, `ActiveEntry`, `QueueState`, `QueueView` types defined per design.md's Data Models section
-- [ ] Domain error classes defined: `DuplicateNameError`, `NotFoundError`, `ForbiddenError`, `WrongPhaseError`, `QueueBusyError`
-- [ ] `npm run typecheck` passes
+- [x] `Phase`, `WaitingEntry`, `ActiveEntry`, `QueueState`, `QueueView` types defined per design.md's Data Models section
+- [x] Domain error classes defined: `DuplicateNameError`, `NotFoundError`, `ForbiddenError`, `WrongPhaseError`, `QueueBusyError`
+- [x] `npm run typecheck` passes
 
 **Tests**: none
 **Gate**: build
 **Commit**: `feat(queue-engine): add domain types and error classes`
+**Status**: ✅ Complete (SPEC_DEVIATION: added a 6th class `ValidationError`, not in the literal 5-class list - required by T10's empty-name check, none of the other 5 fit semantically)
 
 ---
 
