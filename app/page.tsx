@@ -4,12 +4,17 @@ import { ConfirmTurn } from "../components/queue/ConfirmTurn";
 import { ErrorScreen } from "../components/queue/ErrorScreen";
 import { Heating } from "../components/queue/Heating";
 import { Landing } from "../components/queue/Landing";
+import { Loading } from "../components/queue/Loading";
 import { Waiting } from "../components/queue/Waiting";
 import { useQueue, type UseQueueResult } from "../hooks/useQueue";
 
 function PhaseRouter({ queue }: { queue: UseQueueResult }) {
   if (queue.connection === "down") {
     return <ErrorScreen queue={queue} />;
+  }
+
+  if (queue.view === null) {
+    return <Loading />;
   }
 
   const phase = queue.view?.self?.phase;
