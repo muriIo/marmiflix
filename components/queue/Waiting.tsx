@@ -1,14 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import { formatDuration } from "../../lib/format";
 import type { UseQueueResult } from "../../hooks/useQueue";
 
 export function Waiting({ queue }: { queue: UseQueueResult }) {
+  const [submitting, setSubmitting] = useState(false);
   const view = queue.view;
   const self = view?.self;
 
   async function handleLeave() {
-    await queue.actions.leave();
+    if (submitting) {
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await queue.actions.leave();
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -55,9 +65,10 @@ export function Waiting({ queue }: { queue: UseQueueResult }) {
       <button
         type="button"
         onClick={handleLeave}
-        className="w-full rounded-xl border border-char-600 px-4 py-3 font-semibold text-cream-300 transition-colors hover:border-alarm-500 hover:text-alarm-500"
+        disabled={submitting}
+        className="w-full rounded-xl border border-char-600 px-4 py-3 font-semibold text-cream-300 transition-colors hover:border-alarm-500 hover:text-alarm-500 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        Sair da fila
+        {submitting ? "Saindo..." : "Sair da fila"}
       </button>
     </div>
   );

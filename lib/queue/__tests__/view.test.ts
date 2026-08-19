@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { HEATING_WINDOW_MS } from "../engine";
 import { buildView } from "../view";
 import type { QueueState } from "../types";
 
@@ -32,6 +33,58 @@ describe("buildView - anonymous / landing (QUEUE-01)", () => {
     const view = buildView(state, null, now);
     expect(view.queueCount).toBe(1);
     expect(view.estimatedWaitMs).toBe(120_000);
+  });
+
+  it("estimates the confirm-window remainder plus a full heating turn for a hypothetical new joiner while the active entry is still confirming, not just the short confirm-window remainder", () => {
+    const now = 1_000_000;
+    const state: QueueState = {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "confirming",
+        phaseStartedAt: now,
+        deadline: now + 20_000,
+      },
+      waiting: [],
+    };
+    const view = buildView(state, null, now);
+    expect(view.queueCount).toBe(1);
+    expect(view.estimatedWaitMs).toBe(20_000 + HEATING_WINDOW_MS);
+  });
+
+  it("keeps the estimate continuous across the confirming -> heating transition (no upward jump right when the active entry confirms)", () => {
+    const confirmDeadline = 1_020_000;
+    const stateJustBeforeConfirm: QueueState = {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "confirming",
+        phaseStartedAt: 1_000_000,
+        deadline: confirmDeadline,
+      },
+      waiting: [],
+    };
+    const stateJustAfterConfirm: QueueState = {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "heating",
+        phaseStartedAt: confirmDeadline,
+        deadline: confirmDeadline + HEATING_WINDOW_MS,
+      },
+      waiting: [],
+    };
+
+    const before = buildView(stateJustBeforeConfirm, null, confirmDeadline);
+    const after = buildView(stateJustAfterConfirm, null, confirmDeadline);
+
+    expect(before.estimatedWaitMs).toBe(after.estimatedWaitMs);
   });
 
   it("adds 5 minutes per waiting person on top of the active turn's remaining time for a hypothetical new joiner", () => {
@@ -97,6 +150,26 @@ describe("buildView - waiting viewer (QUEUE-05, QUEUE-21)", () => {
     // active remaining (60_000) + 1 person ahead (Bruno) * 5 min
     expect(view.self?.estimatedWaitMs).toBe(60_000 + FIVE_MIN_MS);
     expect(view.estimatedWaitMs).toBe(60_000 + FIVE_MIN_MS);
+  });
+
+  it("estimates the confirm-window remainder plus a full heating turn for a waiting viewer while the active entry ahead of them is still confirming", () => {
+    const now = 1_000_000;
+    const state: QueueState = {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "confirming",
+        phaseStartedAt: now,
+        deadline: now + 20_000,
+      },
+      waiting: [{ id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: now - 500 }],
+    };
+    const view = buildView(state, "b1", now);
+
+    expect(view.self).toMatchObject({ id: "b1", phase: "waiting", position: 1 });
+    expect(view.self?.estimatedWaitMs).toBe(20_000 + HEATING_WINDOW_MS);
   });
 
   it("lists the display names of everyone strictly ahead, in join order, for the 3rd person (QUEUE-21)", () => {

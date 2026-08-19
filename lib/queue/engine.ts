@@ -118,7 +118,7 @@ export function applyLeave(state: QueueState, input: IdentifiedInput): QueueStat
   };
 }
 
-const HEATING_WINDOW_MS = 315_000; // 5:00 heating + 15s grace
+export const HEATING_WINDOW_MS = 315_000; // 5:00 heating + 15s grace
 
 export function applyConfirmTurn(
   state: QueueState,
