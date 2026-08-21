@@ -42,6 +42,12 @@ function promoteNextToActive(state: QueueState, now: number): QueueState {
       phase: "confirming",
       phaseStartedAt: now,
       deadline: now + CONFIRM_WINDOW_MS,
+      // SPEC_DEVIATION: carrying the waiting entry's pushSubscription through
+      // to the promoted active entry wasn't in T2's stated scope, but T9's
+      // Done-when requires a reap/finish-heating promotion to produce a
+      // turn-ready job for the promoted entry's subscription - which is only
+      // possible if promoteNextToActive doesn't silently drop it here.
+      ...(next.pushSubscription ? { pushSubscription: next.pushSubscription } : {}),
     },
     waiting: rest,
   };

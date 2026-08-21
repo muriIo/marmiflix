@@ -354,15 +354,15 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] A join into an empty queue (with a subscription) produces a `turn-ready` job in the same call
-- [ ] A confirm-turn-timeout reap (via a GET poll past the deadline) produces a `turn-ready` job for the newly promoted entry
-- [ ] A finish-heating that promotes the next waiting entry produces a `turn-ready` job for them
-- [ ] A poll that crosses the 5:00/5:20 heating elapsed marks produces the corresponding checkpoint job(s), and does not repeat them on a subsequent poll
-- [ ] A leave/finish/timeout that drops the count from 100 to 99 produces a `seat-opened` job addressed to every current `seatWaitlist` subscriber
-- [ ] No entry without a `pushSubscription` ever produces a job with zero recipients
-- [ ] All 5 existing call sites (`app/api/queue/*/route.ts`) still typecheck against the new return shape (this task only changes `store.ts`; call sites are fixed in Phase 3, so a transient typecheck failure across the workspace is expected and resolved by the end of Phase 3 - `npm run test:unit`/`typecheck` for the whole repo is not the gate for this task specifically)
-- [ ] Gate check passes: `npm run test:integration` (targeting `lib/queue/__tests__/with-queue-mutation.integration.test.ts` and `store.integration.test.ts`)
-- [ ] Test count: 6 new integration test cases minimum
+- [x] A join into an empty queue (with a subscription) produces a `turn-ready` job in the same call
+- [x] A confirm-turn-timeout reap (via a GET poll past the deadline) produces a `turn-ready` job for the newly promoted entry
+- [x] A finish-heating that promotes the next waiting entry produces a `turn-ready` job for them
+- [x] A poll that crosses the 5:00/5:20 heating elapsed marks produces the corresponding checkpoint job(s), and does not repeat them on a subsequent poll
+- [x] A leave/finish/timeout that drops the count from 100 to 99 produces a `seat-opened` job addressed to every current `seatWaitlist` subscriber
+- [x] No entry without a `pushSubscription` ever produces a job with zero recipients
+- [x] All 5 existing call sites (`app/api/queue/*/route.ts`) still typecheck against the new return shape (this task only changes `store.ts`; call sites are fixed in Phase 3, so a transient typecheck failure across the workspace is expected and resolved by the end of Phase 3 - `npm run test:unit`/`typecheck` for the whole repo is not the gate for this task specifically)
+- [x] Gate check passes: `npm run test:integration` (targeting `lib/queue/__tests__/with-queue-mutation.integration.test.ts` and `store.integration.test.ts`)
+- [x] Test count: 6 new integration test cases minimum
 
 **Tests**: integration
 **Gate**: full
