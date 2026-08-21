@@ -272,8 +272,8 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] Both types exported and compile
-- [ ] No TypeScript errors: `npm run typecheck`
+- [x] Both types exported and compile
+- [x] No TypeScript errors: `npm run typecheck`
 
 **Tests**: none
 **Gate**: build
