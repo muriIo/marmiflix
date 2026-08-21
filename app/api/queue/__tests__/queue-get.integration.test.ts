@@ -81,6 +81,7 @@ describe("GET /api/queue", () => {
         deadline: past,
       },
       waiting: [],
+      seatWaitlist: [],
     };
     await redis.set(QUEUE_STATE_KEY, expiredState);
 

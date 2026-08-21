@@ -13,7 +13,7 @@ const CONFIRM_WINDOW_MS = 20_000;
 const HEATING_WINDOW_MS = 315_000;
 
 function emptyState(): QueueState {
-  return { version: 1, active: null, waiting: [] };
+  return { version: 1, active: null, waiting: [], seatWaitlist: [] };
 }
 
 describe("reapExpired", () => {
@@ -36,6 +36,7 @@ describe("reapExpired", () => {
         deadline: now + 1000,
       },
       waiting: [],
+      seatWaitlist: [],
     };
     const result = reapExpired(state, now);
     expect(result).toEqual(state);
@@ -57,6 +58,7 @@ describe("reapExpired", () => {
         { id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: now - 500 },
         { id: "c1", name: "Carla", sessionTokenHash: "hash-c1", joinedAt: now - 100 },
       ],
+      seatWaitlist: [],
     };
     const result = reapExpired(state, now);
 
@@ -88,6 +90,7 @@ describe("reapExpired", () => {
         deadline: now - 1,
       },
       waiting: [{ id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: now - 500 }],
+      seatWaitlist: [],
     };
     const result = reapExpired(state, now);
 
@@ -115,6 +118,7 @@ describe("reapExpired", () => {
         deadline: now - 1,
       },
       waiting: [],
+      seatWaitlist: [],
     };
     const result = reapExpired(state, now);
 
@@ -135,6 +139,7 @@ describe("reapExpired", () => {
         deadline: now - 1,
       },
       waiting: [{ id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: now - 500 }],
+      seatWaitlist: [],
     };
     const snapshot = structuredClone(state);
     reapExpired(state, now);
@@ -172,6 +177,7 @@ describe("applyJoin", () => {
         deadline: now + 300_000,
       },
       waiting: [{ id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: now - 500 }],
+      seatWaitlist: [],
     };
     const result = applyJoin(state, { name: "Carla", id: "c1", sessionTokenHash: "hash-c1" }, now);
 
@@ -195,6 +201,7 @@ describe("applyJoin", () => {
         deadline: now + CONFIRM_WINDOW_MS,
       },
       waiting: [],
+      seatWaitlist: [],
     };
     const result = applyJoin(state, { name: "Bruno", id: "b1", sessionTokenHash: "hash-b1" }, now);
 
@@ -221,6 +228,7 @@ describe("applyJoin", () => {
         deadline: now + 300_000,
       },
       waiting: [],
+      seatWaitlist: [],
     };
 
     expect(() =>
@@ -234,6 +242,7 @@ describe("applyJoin", () => {
       version: 1,
       active: null,
       waiting: [{ id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: now - 500 }],
+      seatWaitlist: [],
     };
 
     expect(() =>
@@ -278,6 +287,7 @@ describe("applyLeave", () => {
         { id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: 999_500 },
         { id: "c1", name: "Carla", sessionTokenHash: "hash-c1", joinedAt: 999_900 },
       ],
+      seatWaitlist: [],
     };
   }
 
@@ -331,6 +341,7 @@ describe("applyConfirmTurn", () => {
         deadline: 1_000_000 + CONFIRM_WINDOW_MS,
       },
       waiting: [{ id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: 999_500 }],
+      seatWaitlist: [],
     };
   }
 
@@ -393,6 +404,7 @@ describe("applyFinishHeating", () => {
         deadline: 1_000_000 + HEATING_WINDOW_MS,
       },
       waiting: [{ id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: 999_500 }],
+      seatWaitlist: [],
     };
   }
 

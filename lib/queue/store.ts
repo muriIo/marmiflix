@@ -20,7 +20,7 @@ end
 `;
 
 function emptyState(): QueueState {
-  return { version: 0, active: null, waiting: [] };
+  return { version: 0, active: null, waiting: [], seatWaitlist: [] };
 }
 
 export async function getState(): Promise<QueueState> {

@@ -55,6 +55,7 @@ describe("withQueueMutation", () => {
         deadline: past,
       },
       waiting: [{ id: "next-id", name: "Proximo", sessionTokenHash: "hash2", joinedAt: past - 30_000 }],
+      seatWaitlist: [],
     };
     await redis.set(QUEUE_STATE_KEY, staleActiveState);
 

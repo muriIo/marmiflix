@@ -1,10 +1,18 @@
 export type Phase = "waiting" | "confirming" | "heating";
 
+export interface PushSubscriptionRecord {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
+export type HeatingCheckpoint = "heating-ended" | "confirm-finish-ending";
+
 export interface WaitingEntry {
   id: string;
   name: string;
   sessionTokenHash: string;
   joinedAt: number;
+  pushSubscription?: PushSubscriptionRecord;
 }
 
 export interface ActiveEntry {
@@ -14,12 +22,22 @@ export interface ActiveEntry {
   phase: "confirming" | "heating";
   phaseStartedAt: number;
   deadline: number;
+  pushSubscription?: PushSubscriptionRecord;
+  notifiedCheckpoints?: HeatingCheckpoint[];
+}
+
+export interface SeatWaitlistEntry {
+  id: string;
+  tokenHash: string;
+  subscription: PushSubscriptionRecord;
+  registeredAt: number;
 }
 
 export interface QueueState {
   version: number;
   active: ActiveEntry | null;
   waiting: WaitingEntry[];
+  seatWaitlist: SeatWaitlistEntry[];
 }
 
 export interface SelfView {
@@ -81,5 +99,12 @@ export class ValidationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "ValidationError";
+  }
+}
+
+export class QueueFullError extends Error {
+  constructor() {
+    super("A fila está cheia no momento");
+    this.name = "QueueFullError";
   }
 }
