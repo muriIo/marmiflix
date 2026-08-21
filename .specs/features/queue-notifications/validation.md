@@ -104,7 +104,7 @@ Isolated scratch: `git worktree add <scratch> HEAD` from the feature worktree; m
 **Mutant 3 is non-equivalent** — proven empirically. A throwaway probe was written in the scratch (a `confirm-turn` mutation on a state seeded at exactly 100 seats with one waitlist subscriber): it **passed** against the unmutated code and **failed** against the mutant. Real-world impact of the missing assertion: any mutation that leaves the count at or above the cap (a `confirm-turn`, a heating poll, a plain GET poll while the queue sits at 100) would broadcast a spurious "Vaga liberada na fila!" push to the entire waitlist on every request. The existing seat-opened tests (`with-queue-mutation.integration.test.ts:233`, `:282`; `leave.integration.test.ts:98`) only cover the legitimate 100→99 drop and the empty-waitlist case; nothing asserts the "drops below" precondition itself.
 
 **Sensor depth**: lightweight (4 mutations, highest-risk new logic)
-**Result**: 3/4 killed — ❌ FAIL
+**Round-1 outcome**: 3/4 killed — ❌ FAIL (superseded — see Re-verification below, mutant 3 is now killed)
 
 ---
 
@@ -242,3 +242,135 @@ Isolated scratch: `git worktree add <scratch> HEAD` from the feature worktree; m
 **Known, pre-flagged, non-blocking**: the SW (`public/sw.js`) and UI (`components/queue/*.tsx`) layers have no automated test path in this repo — declared up front in `tasks.md:26-30` and carried as unchecked manual items on T5, T20, T24, T25. These are correctly documented, not hidden. They remain outstanding pending a browser session.
 
 **Next steps**: Route Fixes 1–4 back to an implementer (Fix 1 first — it is a one-line change unblocking a P1 AC). Re-verify, then run the deferred Interactive UAT in a browser to close NOTIF-02, 09, 11, 15, 20, 21, 27, 28 and the four manual task items.
+
+---
+
+## Re-verification (Fix Round 1) — 2026-08-21
+
+**Fix-round diff range**: `899c429..6389117` (9 commits: T26–T32 implementation + the report/tasks commits that routed them)
+**Verifier**: independent sub-agent (author ≠ verifier), fresh session, read-only over the real tree
+
+This section re-derives the spec-defined outcome for each of the 5 gaps the first pass found and traces it to the fix-round code, independently — it does not take T26–T32's own checkboxes as proof. T1–T25 are not re-litigated (see the original report above).
+
+### Fix 1 — NOTIF-23 (Blocker): push payload omitted `scenario`
+
+| Check | `file:line` + evidence |
+| --- | --- |
+| Serialized payload includes `scenario` | `lib/notifications/dispatcher.ts:58-63` — `JSON.stringify({ scenario: job.scenario, ...buildNotificationPayload(job.scenario) })` |
+| Test strengthened | `lib/notifications/__tests__/dispatcher.test.ts:61-63` — `expect(parsedPayload.scenario).toBe(job.scenario)`; `:65-77` — `it.each(SCENARIOS)` asserting `scenario` round-trips for all four values |
+| Downstream consumers now reachable | `components/queue/QueueFull.tsx:40`'s `data?.scenario === "seat-opened"` guard and `public/sw.js:37`'s `tag: data.scenario` now receive a real value — code inspection only, SW/UI layer still has no automated test path (pre-declared, unchanged from round 1) |
+
+**Result**: ✅ Closed. Confirmed independently by the sensor (mutation 1 below).
+
+### Fix 2 — NOTIF-25 (Major): join never cleared the waitlist registration
+
+| Check | `file:line` + evidence |
+| --- | --- |
+| Engine removes the matching entry | `lib/queue/engine.ts:69` (`JoinInput.waitlistCredentials`), `:76-95` (`clearMatchingWaitlistEntry` — id+tokenHash match, no-op on miss/absent), `:141` (`applyJoin` returns `clearMatchingWaitlistEntry(joined, input.waitlistCredentials)`) |
+| Engine tests | `lib/queue/__tests__/engine.test.ts:422-436` (removes exactly the match), `:439-444` (no-op when absent), `:447-462` (no-op on id mismatch, join still succeeds), `:466-481` (no-op on tokenHash mismatch) |
+| Route accepts and hashes credentials | `app/api/queue/join/route.ts:66-69` (`waitlistId`/`waitlistToken` → `{ id, tokenHash: hashToken(waitlistToken) }`), `:81` (passed into `applyJoin`) |
+| Route integration tests | `app/api/queue/__tests__/join.integration.test.ts:166-191` (valid pair removes the registration), `:192-219` (mismatched token: still succeeds, entry retained), `:220-233` (absent fields: unchanged behavior) |
+| Hook forwards credentials | `hooks/useQueue.ts:201,207-209` — `join()` maps `waitlistCredentials` to `body.waitlistId`/`body.waitlistToken` |
+| Client wires storage → forward → clear | `components/queue/Landing.tsx:34` (`getWaitlistIdentity()`), `:36-38` (forwarded on `join()`), `:40-41` (`clearWaitlistIdentity()` called only after a successful join) |
+
+**Result**: ✅ Closed, end to end (engine → route → hook → client). Confirmed independently by the sensor (mutation 2 below).
+
+### Fix 3 — NOTIF-22 (Major): surviving mutant, no "still full" negative assertion
+
+| Check | `file:line` + evidence |
+| --- | --- |
+| New negative test | `lib/queue/__tests__/with-queue-mutation.integration.test.ts:365-401` — seeds exactly 100 seats (active `confirming` + 99 waiting) with a `seatWaitlist` subscriber, runs `applyConfirmTurn` (count stays at 100), asserts `notificationJobs.some(j => j.scenario === "seat-opened")` is `false` |
+| Original surviving mutation re-applied and killed | Reproduced the exact round-1 sensor fault at `lib/queue/store.ts:107` (`if (!wasFull \|\| isFullNow)` → `if (!wasFull)`) in an isolated scratch worktree — the new test at `:400` now fails against the mutant (`expected true to be false`) |
+
+**Result**: ✅ Closed. The mutant that survived the full gate in round 1 is now killed.
+
+### Fix 4 — spec Edge Case 2 (Major): invalid-subscription pruning never wired
+
+| Check | `file:line` + evidence |
+| --- | --- |
+| `dispatchAll` performs the prune by default | `lib/notifications/dispatcher.ts:91-96` (`pruneInvalidSubscriptionsFromState` calls `withQueueMutation` + `applyPruneSubscriptions`), `:105-107` (`dispatchAll`'s `pruneInvalidSubscriptions` parameter defaults to it) — all 5 existing route call sites (`after(() => dispatchAll(notificationJobs))`) get pruning without any call-site change |
+| End-to-end integration test against real Redis | `lib/notifications/__tests__/dispatcher.integration.test.ts:46-71` (a 410 on an active entry's subscription removes it from `QueueState`), `:73-92` (a 404 on a `seatWaitlist` subscriber removes that entry), `:94-137` (an invalid recipient's prune does not affect a healthy recipient's delivery or stored subscription in the same job) |
+
+**Result**: ✅ Closed. Confirmed independently by the sensor (mutation 4 below) and by a real-Redis integration test (not just a unit mock).
+
+### Fix 5 — NOTIF-18 (Minor): no boundary-under-concurrency test
+
+| Check | `file:line` + evidence |
+| --- | --- |
+| Concurrent-join test at the 99/100 boundary | `lib/queue/__tests__/with-queue-mutation.integration.test.ts:45-95` — seeds 99 seats, fires two concurrent `applyJoin`-driven mutations via `Promise.allSettled`, asserts `fulfilled.length === 1`, `rejected[0].reason instanceof QueueFullError`, and the final `getState()` count is exactly 100 |
+
+**Result**: ✅ Closed.
+
+### Discrimination Sensor (Fix Round 1)
+
+Isolated scratch: `git worktree add /tmp/.../sensor-scratch HEAD` from this worktree (node_modules symlinked, `.env.test` copied — no `npm install` needed); mutations applied only there; `git worktree remove --force` afterward. Real-tree `git status --porcelain` was empty before sensor work and empty after (baseline match verified).
+
+| # | File:line | Mutation | Gate run | Killed? |
+| --- | --- | --- | --- | --- |
+| 1 | `lib/notifications/dispatcher.ts:58-63` | Dropped `scenario` from the serialized push payload again (reverted Fix 1) | `test:unit` (`dispatcher.test.ts`) | ✅ Killed — 5/11 tests failed (`parsedPayload.scenario` assertions) |
+| 2 | `lib/queue/engine.ts:88-93` | Made `clearMatchingWaitlistEntry` a no-op (`return state` unconditionally, reverted Fix 2) | `test:unit` (`engine.test.ts`) | ✅ Killed — 1/59 failed (NOTIF-25 removal-by-match case at `:436`) |
+| 3 | `lib/queue/store.ts:107` | Re-applied the exact round-1 surviving mutation: `if (!wasFull \|\| isFullNow)` → `if (!wasFull)` | `test:integration` (`with-queue-mutation.integration.test.ts`) | ✅ Killed — 1/12 failed (T30's new "still full" case at `:400`, `expected true to be false`) |
+| 4 | `lib/notifications/dispatcher.ts:91-96` | Disabled `pruneInvalidSubscriptionsFromState` (made it a no-op, reverted Fix 4) | `test:integration` (`dispatcher.integration.test.ts`) | ✅ Killed — 3/3 failed (all three prune-persistence assertions) |
+
+**Sensor depth**: lightweight (4 mutations, one per fix's highest-risk code path; mutation 3 deliberately reproduces the exact round-1 surviving fault to prove it no longer survives)
+**Result**: 4/4 killed — ✅ PASS
+
+### Gate Check (Fix Round 1, full re-run)
+
+- **Gate command**: `npm run typecheck && npm run lint && npm run test:unit && npm run test:integration` (Build level, `tasks.md:38`)
+- **Result**: exit code **0**. typecheck clean, lint clean, **135 unit passed** (10 files), **70 integration passed** (13 files) — **205 total, 0 failed, 0 skipped**
+- **Test count before this fix round**: 189 (127 unit + 62 integration, per the round-1 report)
+- **Test count after this fix round**: 205 (135 unit + 70 integration)
+- **Delta**: +16, distributed across `dispatcher.test.ts` (+4, one `it.each` over the 4 scenarios), `engine.test.ts` (+4, Fix 2's four NOTIF-25 cases), `join.integration.test.ts` (+3, Fix 2's route-level cases), `with-queue-mutation.integration.test.ts` (+2, Fix 3 + Fix 5), `dispatcher.integration.test.ts` (+3, new file, Fix 4) — no deletions, no weakened assertions found on inspection of the fix-round diff
+- **Environment**: `docker-compose.test.yml` stack (Redis + serverless-redis-http) running on `127.0.0.1:6379`/`127.0.0.1:8079`, per the task brief
+- **Skipped tests**: none
+- **Failures**: none
+
+### Code Quality (Fix Round 1)
+
+| Principle | Status |
+| --- | --- |
+| Minimum code | ✅ — every fix is the smallest change closing its specific gap (1-line payload fix, one new engine function + 2 call-site threads, a default-parameter behavior change, 2 new tests) |
+| Surgical changes | ✅ — `git diff --stat 899c429..6389117` (excluding `.specs/`) touches exactly: `dispatcher.ts`, `engine.ts`, `join/route.ts`, `Landing.tsx`, `useQueue.ts`, and their test files — every file maps to a T26–T32 `Where` |
+| No scope creep | ✅ — nothing beyond the 5 named gaps; no new abstractions, no speculative flexibility |
+| Matches patterns | ✅ — `clearMatchingWaitlistEntry` reuses the `find`-by-id-then-hash-compare shape already used by `authorizeEntry`; `pruneInvalidSubscriptionsFromState` reuses `withQueueMutation` exactly as `design.md` originally specified |
+| Spec-anchored outcome check | ✅ — new assertions target exact spec values (`scenario` string equality, exact `seatWaitlist` array equality, exact `QueueFullError` type, exact final count `100`) |
+| Every test maps to a spec requirement | ✅ — all new tests carry a `NOTIF-xx`/`Fix N`/`T3x` tag |
+
+### Edge Cases (Fix Round 1)
+
+- [x] **Stored push subscription rejected 410/404 → discard rather than retry.** Now handled end-to-end — previously the root NOT-handled item in round 1's Edge Cases section. `lib/notifications/__tests__/dispatcher.integration.test.ts:46-137` proves it against real Redis.
+
+### Requirement Traceability Update (Fix Round 1)
+
+| Requirement | Round-1 Status | New Status |
+| --- | --- | --- |
+| NOTIF-23 | ❌ Needs Fix | ✅ Verified |
+| NOTIF-25 | ❌ Needs Fix | ✅ Verified |
+| NOTIF-22 | ⚠️ Partial (surviving mutant) | ✅ Verified |
+| NOTIF-18 | ⚠️ Spec-precision gap | ✅ Verified |
+| spec Edge Case ("410/404 subscription discarded") | ❌ Not handled end-to-end | ✅ Verified |
+| NOTIF-16 | ⚠️ Spec-precision gap | ⚠️ Unchanged — not one of the 5 routed fixes; still a structural/extensibility property with no runtime-assertable outcome (Independent Test not executed) |
+| NOTIF-02, 09, 11, 15, 20, 21, 27, 28 | ⚠️ No automated coverage (SW/UI layers) | ⚠️ Unchanged — pre-declared in the Test Coverage Matrix (`tasks.md:26-30`), pending Interactive UAT in a browser session |
+
+All other requirements (T1–T25's scope) are unchanged from the round-1 report.
+
+---
+
+## Summary (Fix Round 1)
+
+**Overall**: ✅ **Ready**
+
+**Spec-anchored check**: 21/29 ACs now match the spec-defined outcome exactly (16 carried over + 5 newly closed: NOTIF-23, NOTIF-25, NOTIF-22, NOTIF-18, and the spec Edge Case); 1 spec-precision flag remains (NOTIF-16, out of scope for this fix round); 8 ⚠️ no-automated-coverage flags remain, all pre-declared SW/UI-layer items, unchanged from round 1
+**Sensor**: 4/4 mutations killed, including the exact mutation that survived in round 1 (mutation 3, reproducing the removed `isFullNow` guard)
+**Gate**: 205 passed, 0 failed, 0 skipped (typecheck clean, lint clean)
+
+**What works (fix round)**: All 5 gaps from the round-1 FAIL report are closed and independently verified with `file:line` evidence — not just checkbox-trusted. The scenario field flows through the payload to both downstream consumers. Waitlist-clear-on-join is wired end-to-end from the engine through the route, hook, and client, with both the happy path and the two no-op paths (absent credentials, mismatched credentials) tested. The previously-surviving mutant is now killed by a real negative test. Subscription pruning is now a real default behavior proven against live Redis, not a dead optional parameter. The seat-cap boundary is proven under actual concurrent CAS writes, not just structurally argued. No test was deleted or weakened; +16 test blocks, 0 regressions.
+
+**Issues found**: None among the 5 routed gaps. No new gaps surfaced during this re-verification pass.
+
+**Outstanding, unchanged from round 1 (not blocking, pre-declared)**:
+- Interactive UAT was not performed — no browser or human tester available in this sandboxed environment. The four pre-flagged manual items (T5, T20 ×2, T24, T25) and the 8 SW/UI-layer ACs remain the concrete checklist for that session.
+- NOTIF-16 (5th-scenario extensibility) remains a spec-precision gap — a structural claim with no runtime-assertable outcome defined in the spec; not part of the 5 routed fixes and not newly introduced.
+
+**Next steps**: No further fix→re-verify iteration is needed for the 5 routed gaps. Schedule the deferred Interactive UAT in a real browser session to close the SW/UI-layer items before user-facing sign-off; this is unchanged guidance from round 1, not a new requirement introduced by this pass.
