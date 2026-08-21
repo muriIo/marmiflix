@@ -445,9 +445,9 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] Existing `confirm-turn.integration.test.ts` suite passes unmodified
-- [ ] `POST` response shape/status codes unchanged
-- [ ] Gate check passes: `npm run test:integration`
+- [x] Existing `confirm-turn.integration.test.ts` suite passes unmodified
+- [x] `POST` response shape/status codes unchanged
+- [x] Gate check passes: `npm run test:integration`
 
 **Tests**: integration
 **Gate**: full
