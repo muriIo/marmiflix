@@ -1,6 +1,8 @@
 import * as webpushModule from "web-push";
 import { buildNotificationPayload } from "./strategies";
 import type { NotificationJob } from "./types";
+import { applyPruneSubscriptions } from "../queue/engine";
+import { withQueueMutation } from "../queue/store";
 import type { PushSubscriptionRecord } from "../queue/types";
 
 function configureVapid(): typeof webpushModule {
@@ -82,20 +84,33 @@ export async function dispatchNotificationJob(
   return invalidRecipients;
 }
 
+// Default prune step: discards every 404/410 endpoint from QueueState (active,
+// waiting, and seatWaitlist entries) via the same CAS mutation path as every
+// other state change. Every dispatchAll call site gets this "for free" unless
+// it supplies its own pruneInvalidSubscriptions callback (e.g. in tests).
+async function pruneInvalidSubscriptionsFromState(invalidEndpoints: string[]): Promise<void> {
+  await withQueueMutation((state) => ({
+    next: applyPruneSubscriptions(state, invalidEndpoints),
+    result: null,
+  }));
+}
+
 /**
  * Dispatches every job, then hands the combined list of invalid (404/410)
- * recipient endpoints to the given prune callback, if any invalid endpoints
- * were found and a callback was provided. Never throws.
+ * recipient endpoints to the given prune callback (defaulting to discarding
+ * them from QueueState), if any invalid endpoints were found. Never throws.
  */
 export async function dispatchAll(
   jobs: NotificationJob[],
-  pruneInvalidSubscriptions?: (invalidEndpoints: string[]) => void | Promise<void>,
+  pruneInvalidSubscriptions: (
+    invalidEndpoints: string[],
+  ) => void | Promise<void> = pruneInvalidSubscriptionsFromState,
 ): Promise<void> {
   try {
     const invalidLists = await Promise.all(jobs.map((job) => dispatchNotificationJob(job)));
     const invalidEndpoints = invalidLists.flat().map((recipient) => recipient.endpoint);
 
-    if (invalidEndpoints.length > 0 && pruneInvalidSubscriptions) {
+    if (invalidEndpoints.length > 0) {
       await pruneInvalidSubscriptions(invalidEndpoints);
     }
   } catch (error) {

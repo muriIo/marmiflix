@@ -989,11 +989,11 @@ T32
 
 **Done when**:
 
-- [ ] Seeding an entry with a subscription, mocking `web-push` to reject it with `statusCode: 410`, and triggering a dispatching route results in that subscription being removed from `QueueState` (`state.active?.pushSubscription` or the matching `waiting`/`seatWaitlist` entry, whichever applies)
-- [ ] A `seatWaitlist` equivalent is covered (an invalid waitlist subscriber's entry gets its `subscription` pruned or the entry itself removed - whichever `applyPruneSubscriptions` already does per T4, unchanged here)
-- [ ] A healthy recipient's delivery in the same job is unaffected by another recipient's invalid subscription (existing `Promise.allSettled` isolation preserved)
-- [ ] Gate check passes: `npm run test:integration`
-- [ ] Test count: 3 new integration test cases minimum
+- [x] Seeding an entry with a subscription, mocking `web-push` to reject it with `statusCode: 410`, and triggering a dispatching route results in that subscription being removed from `QueueState` (`state.active?.pushSubscription` or the matching `waiting`/`seatWaitlist` entry, whichever applies)
+- [x] A `seatWaitlist` equivalent is covered (an invalid waitlist subscriber's entry gets its `subscription` pruned or the entry itself removed - whichever `applyPruneSubscriptions` already does per T4, unchanged here)
+- [x] A healthy recipient's delivery in the same job is unaffected by another recipient's invalid subscription (existing `Promise.allSettled` isolation preserved)
+- [x] Gate check passes: `npm run test:integration`
+- [x] Test count: 3 new integration test cases minimum
 
 **Tests**: integration
 **Gate**: full
