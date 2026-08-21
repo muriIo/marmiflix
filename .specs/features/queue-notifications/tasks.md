@@ -324,13 +324,13 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] `web-push` is a `dependencies` entry (not `devDependencies`) in `package.json`; `@types/web-push` is a `devDependencies` entry
-- [ ] `dispatchNotificationJob` calls `webpush.sendNotification` once per recipient with the strategy-built payload as JSON
-- [ ] A `statusCode: 410` (or 404) rejection is returned in the invalid-recipients list; a `statusCode: 500` rejection is swallowed (not returned as invalid, not thrown)
-- [ ] `dispatchAll` never rejects even when every recipient fails
-- [ ] `web-push` is mocked in tests (`vi.mock("web-push", ...)`) - no real network calls
-- [ ] Gate check passes: `npm run test:unit`
-- [ ] Test count: 5 new test cases minimum
+- [x] `web-push` is a `dependencies` entry (not `devDependencies`) in `package.json`; `@types/web-push` is a `devDependencies` entry
+- [x] `dispatchNotificationJob` calls `webpush.sendNotification` once per recipient with the strategy-built payload as JSON
+- [x] A `statusCode: 410` (or 404) rejection is returned in the invalid-recipients list; a `statusCode: 500` rejection is swallowed (not returned as invalid, not thrown)
+- [x] `dispatchAll` never rejects even when every recipient fails
+- [x] `web-push` is mocked in tests (`vi.mock("web-push", ...)`) - no real network calls
+- [x] Gate check passes: `npm run test:unit`
+- [x] Test count: 5 new test cases minimum
 
 **Tests**: unit
 **Gate**: quick
