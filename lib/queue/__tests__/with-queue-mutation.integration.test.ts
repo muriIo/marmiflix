@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { applyFinishHeating, applyJoin, applyLeave } from "../engine";
+import { applyConfirmTurn, applyFinishHeating, applyJoin, applyLeave } from "../engine";
 import { redis } from "../redis-client";
 import { QUEUE_STATE_KEY, getState, storeInternals, withQueueMutation } from "../store";
 import { QueueBusyError, type PushSubscriptionRecord, type QueueState } from "../types";
@@ -308,5 +308,43 @@ describe("withQueueMutation - notification jobs", () => {
     });
 
     expect(notificationJobs.find((job) => job.scenario === "seat-opened")).toBeUndefined();
+  });
+
+  it("does not produce a seat-opened job when a mutation leaves the count at exactly 100 (still full) (NOTIF-22)", async () => {
+    const now = Date.now();
+    const waiting = Array.from({ length: 99 }, (_, i) => ({
+      id: `w${i}`,
+      name: `Visitor${i}`,
+      sessionTokenHash: `hash-w${i}`,
+      joinedAt: now - i,
+    }));
+    const waitlistSub: PushSubscriptionRecord = {
+      endpoint: "https://push.example/waitlist-still-full",
+      keys: { p256dh: "p", auth: "a" },
+    };
+    const seeded: QueueState = {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "confirming",
+        phaseStartedAt: now,
+        deadline: now + 60_000,
+      },
+      waiting,
+      seatWaitlist: [
+        { id: "wl1", tokenHash: "hash-wl1", subscription: waitlistSub, registeredAt: now - 5000 },
+      ],
+    };
+    await redis.set(QUEUE_STATE_KEY, seeded);
+
+    const { notificationJobs, result } = await withQueueMutation((state, mutateNow) => {
+      const next = applyConfirmTurn(state, { id: "a1", sessionTokenHash: "hash-a1" }, mutateNow);
+      return { next, result: next };
+    });
+
+    expect((result.active ? 1 : 0) + result.waiting.length).toBe(100);
+    expect(notificationJobs.some((job) => job.scenario === "seat-opened")).toBe(false);
   });
 });

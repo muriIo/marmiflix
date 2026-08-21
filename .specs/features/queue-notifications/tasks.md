@@ -962,10 +962,10 @@ T32
 
 **Done when**:
 
-- [ ] A mutation that leaves the active+waiting count at 100 (not dropping below) produces zero `seat-opened` jobs, even with a non-empty `seatWaitlist`
-- [ ] Re-running the sensor mutation described above (`if (!wasFull || isFullNow)` → `if (!wasFull)`) against this suite now fails (mutant killed)
-- [ ] Gate check passes: `npm run test:integration`
-- [ ] Test count: existing suite + 1 new case minimum
+- [x] A mutation that leaves the active+waiting count at 100 (not dropping below) produces zero `seat-opened` jobs, even with a non-empty `seatWaitlist`
+- [x] Re-running the sensor mutation described above (`if (!wasFull || isFullNow)` → `if (!wasFull)`) against this suite now fails (mutant killed)
+- [x] Gate check passes: `npm run test:integration`
+- [x] Test count: existing suite + 1 new case minimum
 
 **Tests**: integration
 **Gate**: full
