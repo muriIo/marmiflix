@@ -2,12 +2,16 @@ import {
   DuplicateNameError,
   ForbiddenError,
   NotFoundError,
+  QueueFullError,
   ValidationError,
   WrongPhaseError,
+  type PushSubscriptionRecord,
   type QueueState,
 } from "./types";
 
-const CONFIRM_WINDOW_MS = 20_000;
+const CONFIRM_WINDOW_MS = 60_000;
+
+export const MAX_QUEUE_SEATS = 100;
 
 function normalizedName(name: string): string {
   return name.trim().toLowerCase();
@@ -54,9 +58,15 @@ export interface JoinInput {
   name: string;
   id: string;
   sessionTokenHash: string;
+  pushSubscription?: PushSubscriptionRecord;
 }
 
 export function applyJoin(state: QueueState, input: JoinInput, now: number): QueueState {
+  const currentSeatCount = (state.active ? 1 : 0) + state.waiting.length;
+  if (currentSeatCount >= MAX_QUEUE_SEATS) {
+    throw new QueueFullError();
+  }
+
   const trimmedName = input.name.trim();
 
   if (!trimmedName) {
@@ -77,6 +87,7 @@ export function applyJoin(state: QueueState, input: JoinInput, now: number): Que
         phase: "confirming",
         phaseStartedAt: now,
         deadline: now + CONFIRM_WINDOW_MS,
+        ...(input.pushSubscription ? { pushSubscription: input.pushSubscription } : {}),
       },
     };
   }
@@ -85,7 +96,13 @@ export function applyJoin(state: QueueState, input: JoinInput, now: number): Que
     ...state,
     waiting: [
       ...state.waiting,
-      { id: input.id, name: trimmedName, sessionTokenHash: input.sessionTokenHash, joinedAt: now },
+      {
+        id: input.id,
+        name: trimmedName,
+        sessionTokenHash: input.sessionTokenHash,
+        joinedAt: now,
+        ...(input.pushSubscription ? { pushSubscription: input.pushSubscription } : {}),
+      },
     ],
   };
 }
@@ -118,7 +135,9 @@ export function applyLeave(state: QueueState, input: IdentifiedInput): QueueStat
   };
 }
 
-export const HEATING_WINDOW_MS = 315_000; // 5:00 heating + 15s grace
+export const HEATING_NOMINAL_MS = 300_000; // 5:00 nominal heating time
+export const HEATING_URGENCY_MS = 30_000; // grace window after the nominal time, visually flagged as urgent
+export const HEATING_WINDOW_MS = HEATING_NOMINAL_MS + HEATING_URGENCY_MS; // 5:30 total auto-end deadline
 
 export function applyConfirmTurn(
   state: QueueState,

@@ -159,13 +159,13 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] `applyJoin` throws `QueueFullError` when count is already 100, and does NOT throw at 99
-- [ ] `applyConfirmTurn`'s resulting deadline reflects the new 60,000ms window
-- [ ] `promoteNextToActive`'s resulting deadline reflects the new 60,000ms window
-- [ ] `applyConfirmTurn`'s heating deadline reflects the new 330,000ms window
-- [ ] A join with a `pushSubscription` stores it on the created entry (active-path and waiting-path both covered)
-- [ ] Gate check passes: `npm run test:unit`
-- [ ] Test count: existing `engine.test.ts` suite (currently ~size in repo) plus at least 6 new cases (cap-reject-at-100, cap-allow-at-99, subscription-stored-active-path, subscription-stored-waiting-path, 60s confirm deadline, 330s heating deadline) - no silent deletions of existing cases
+- [x] `applyJoin` throws `QueueFullError` when count is already 100, and does NOT throw at 99
+- [x] `applyConfirmTurn`'s resulting deadline reflects the new 60,000ms window
+- [x] `promoteNextToActive`'s resulting deadline reflects the new 60,000ms window
+- [x] `applyConfirmTurn`'s heating deadline reflects the new 330,000ms window
+- [x] A join with a `pushSubscription` stores it on the created entry (active-path and waiting-path both covered)
+- [x] Gate check passes: `npm run test:unit`
+- [x] Test count: existing `engine.test.ts` suite (currently ~size in repo) plus at least 6 new cases (cap-reject-at-100, cap-allow-at-99, subscription-stored-active-path, subscription-stored-waiting-path, 60s confirm deadline, 330s heating deadline) - no silent deletions of existing cases
 
 **Tests**: unit
 **Gate**: quick

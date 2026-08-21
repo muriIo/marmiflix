@@ -4,13 +4,15 @@ import {
   DuplicateNameError,
   ForbiddenError,
   NotFoundError,
+  QueueFullError,
   ValidationError,
   WrongPhaseError,
+  type PushSubscriptionRecord,
   type QueueState,
 } from "../types";
 
-const CONFIRM_WINDOW_MS = 20_000;
-const HEATING_WINDOW_MS = 315_000;
+const CONFIRM_WINDOW_MS = 60_000;
+const HEATING_WINDOW_MS = 330_000;
 
 function emptyState(): QueueState {
   return { version: 1, active: null, waiting: [], seatWaitlist: [] };
@@ -269,6 +271,114 @@ describe("applyJoin", () => {
     applyJoin(state, { name: "Ana", id: "a1", sessionTokenHash: "hash-a1" }, now);
     expect(state).toEqual(snapshot);
   });
+
+  it("throws QueueFullError when the queue is already at the 100-seat cap (NOTIF-17, NOTIF-18)", () => {
+    const now = 1_000_000;
+    const waiting = Array.from({ length: 99 }, (_, i) => ({
+      id: `w${i}`,
+      name: `Visitor${i}`,
+      sessionTokenHash: `hash-w${i}`,
+      joinedAt: now - i,
+    }));
+    const state: QueueState = {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "heating",
+        phaseStartedAt: now - 1000,
+        deadline: now + 300_000,
+      },
+      waiting,
+      seatWaitlist: [],
+    };
+
+    expect(state.waiting.length + 1).toBe(100);
+    expect(() =>
+      applyJoin(state, { name: "Newcomer", id: "x1", sessionTokenHash: "hash-x1" }, now),
+    ).toThrow(QueueFullError);
+  });
+
+  it("does not throw QueueFullError when the queue is at 99 seats, one below the cap (NOTIF-17)", () => {
+    const now = 1_000_000;
+    const waiting = Array.from({ length: 98 }, (_, i) => ({
+      id: `w${i}`,
+      name: `Visitor${i}`,
+      sessionTokenHash: `hash-w${i}`,
+      joinedAt: now - i,
+    }));
+    const state: QueueState = {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "heating",
+        phaseStartedAt: now - 1000,
+        deadline: now + 300_000,
+      },
+      waiting,
+      seatWaitlist: [],
+    };
+
+    expect(state.waiting.length + 1).toBe(99);
+    expect(() =>
+      applyJoin(state, { name: "Newcomer", id: "x1", sessionTokenHash: "hash-x1" }, now),
+    ).not.toThrow();
+  });
+
+  it("stores a provided push subscription on the active entry created for an empty-queue join (NOTIF-01)", () => {
+    const now = 1_000_000;
+    const state = emptyState();
+    const subscription: PushSubscriptionRecord = {
+      endpoint: "https://push.example/abc",
+      keys: { p256dh: "p256dh-key", auth: "auth-key" },
+    };
+    const result = applyJoin(
+      state,
+      { name: "Ana", id: "a1", sessionTokenHash: "hash-a1", pushSubscription: subscription },
+      now,
+    );
+
+    expect(result.active?.pushSubscription).toEqual(subscription);
+  });
+
+  it("stores a provided push subscription on the waiting entry created for a join into an occupied queue (NOTIF-01)", () => {
+    const now = 1_000_000;
+    const state: QueueState = {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "heating",
+        phaseStartedAt: now - 1000,
+        deadline: now + 300_000,
+      },
+      waiting: [],
+      seatWaitlist: [],
+    };
+    const subscription: PushSubscriptionRecord = {
+      endpoint: "https://push.example/def",
+      keys: { p256dh: "p256dh-key-2", auth: "auth-key-2" },
+    };
+    const result = applyJoin(
+      state,
+      { name: "Bruno", id: "b1", sessionTokenHash: "hash-b1", pushSubscription: subscription },
+      now,
+    );
+
+    expect(result.waiting[0].pushSubscription).toEqual(subscription);
+  });
+
+  it("uses a 60-second confirm-turn deadline for a fresh join into an empty queue (NOTIF-05)", () => {
+    const now = 1_000_000;
+    const state = emptyState();
+    const result = applyJoin(state, { name: "Ana", id: "a1", sessionTokenHash: "hash-a1" }, now);
+
+    expect(result.active?.deadline).toBe(now + 60_000);
+  });
 });
 
 describe("applyLeave", () => {
@@ -388,6 +498,14 @@ describe("applyConfirmTurn", () => {
     const snapshot = structuredClone(state);
     applyConfirmTurn(state, { id: "a1", sessionTokenHash: "hash-a1" }, 1_000_010);
     expect(state).toEqual(snapshot);
+  });
+
+  it("uses a 330-second (5:30) heating auto-end deadline (NOTIF-10)", () => {
+    const state = confirmingState();
+    const now = 1_000_010;
+    const result = applyConfirmTurn(state, { id: "a1", sessionTokenHash: "hash-a1" }, now);
+
+    expect(result.active?.deadline).toBe(now + 330_000);
   });
 });
 
