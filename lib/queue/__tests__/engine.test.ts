@@ -396,6 +396,91 @@ describe("applyJoin", () => {
 
     expect(result.active?.deadline).toBe(now + 60_000);
   });
+
+  function stateWithWaitlist(): QueueState {
+    return {
+      version: 1,
+      active: null,
+      waiting: [],
+      seatWaitlist: [
+        {
+          id: "w1",
+          tokenHash: "hash-w1",
+          subscription: { endpoint: "https://push.example/w1", keys: { p256dh: "p", auth: "a" } },
+          registeredAt: 999_000,
+        },
+        {
+          id: "w2",
+          tokenHash: "hash-w2",
+          subscription: { endpoint: "https://push.example/w2", keys: { p256dh: "p", auth: "a" } },
+          registeredAt: 999_100,
+        },
+      ],
+    };
+  }
+
+  it("removes exactly the matching seatWaitlist entry when waitlistCredentials match by id and tokenHash (NOTIF-25)", () => {
+    const now = 1_000_000;
+    const state = stateWithWaitlist();
+    const result = applyJoin(
+      state,
+      {
+        name: "Ana",
+        id: "a1",
+        sessionTokenHash: "hash-a1",
+        waitlistCredentials: { id: "w1", tokenHash: "hash-w1" },
+      },
+      now,
+    );
+
+    expect(result.seatWaitlist).toEqual([state.seatWaitlist[1]]);
+  });
+
+  it("leaves seatWaitlist untouched when no waitlistCredentials are provided (NOTIF-25)", () => {
+    const now = 1_000_000;
+    const state = stateWithWaitlist();
+    const result = applyJoin(state, { name: "Ana", id: "a1", sessionTokenHash: "hash-a1" }, now);
+
+    expect(result.seatWaitlist).toEqual(state.seatWaitlist);
+  });
+
+  it("does not remove any entry and does not throw when waitlistCredentials.id has no match (NOTIF-25)", () => {
+    const now = 1_000_000;
+    const state = stateWithWaitlist();
+
+    const result = applyJoin(
+      state,
+      {
+        name: "Ana",
+        id: "a1",
+        sessionTokenHash: "hash-a1",
+        waitlistCredentials: { id: "unknown-id", tokenHash: "hash-w1" },
+      },
+      now,
+    );
+
+    expect(result.seatWaitlist).toEqual(state.seatWaitlist);
+    expect(result.active).not.toBeNull();
+  });
+
+  it("does not remove any entry and does not throw when waitlistCredentials.tokenHash is mismatched (NOTIF-25)", () => {
+    const now = 1_000_000;
+    const state = stateWithWaitlist();
+
+    const result = applyJoin(
+      state,
+      {
+        name: "Ana",
+        id: "a1",
+        sessionTokenHash: "hash-a1",
+        waitlistCredentials: { id: "w1", tokenHash: "wrong-hash" },
+      },
+      now,
+    );
+
+    expect(result.seatWaitlist).toEqual(state.seatWaitlist);
+    expect(result.active).not.toBeNull();
+  });
 });
 
 describe("applyLeave", () => {

@@ -66,6 +66,32 @@ export interface JoinInput {
   id: string;
   sessionTokenHash: string;
   pushSubscription?: PushSubscriptionRecord;
+  waitlistCredentials?: { id: string; tokenHash: string };
+}
+
+// Removes the seatWaitlist entry matching both id and tokenHash, if any -
+// used to clear a visitor's seat-opened waitlist registration once their own
+// join succeeds. A missing/mismatched id or tokenHash is a no-op: it must
+// never fail the join itself.
+function clearMatchingWaitlistEntry(
+  state: QueueState,
+  credentials: JoinInput["waitlistCredentials"],
+): QueueState {
+  if (!credentials) {
+    return state;
+  }
+
+  const matches = (entry: QueueState["seatWaitlist"][number]) =>
+    entry.id === credentials.id && entry.tokenHash === credentials.tokenHash;
+
+  if (!state.seatWaitlist.some(matches)) {
+    return state;
+  }
+
+  return {
+    ...state,
+    seatWaitlist: state.seatWaitlist.filter((entry) => !matches(entry)),
+  };
 }
 
 export function applyJoin(state: QueueState, input: JoinInput, now: number): QueueState {
@@ -84,34 +110,35 @@ export function applyJoin(state: QueueState, input: JoinInput, now: number): Que
     throw new DuplicateNameError(trimmedName);
   }
 
-  if (!state.active && state.waiting.length === 0) {
-    return {
-      ...state,
-      active: {
-        id: input.id,
-        name: trimmedName,
-        sessionTokenHash: input.sessionTokenHash,
-        phase: "confirming",
-        phaseStartedAt: now,
-        deadline: now + CONFIRM_WINDOW_MS,
-        ...(input.pushSubscription ? { pushSubscription: input.pushSubscription } : {}),
-      },
-    };
-  }
+  const joined: QueueState =
+    !state.active && state.waiting.length === 0
+      ? {
+          ...state,
+          active: {
+            id: input.id,
+            name: trimmedName,
+            sessionTokenHash: input.sessionTokenHash,
+            phase: "confirming",
+            phaseStartedAt: now,
+            deadline: now + CONFIRM_WINDOW_MS,
+            ...(input.pushSubscription ? { pushSubscription: input.pushSubscription } : {}),
+          },
+        }
+      : {
+          ...state,
+          waiting: [
+            ...state.waiting,
+            {
+              id: input.id,
+              name: trimmedName,
+              sessionTokenHash: input.sessionTokenHash,
+              joinedAt: now,
+              ...(input.pushSubscription ? { pushSubscription: input.pushSubscription } : {}),
+            },
+          ],
+        };
 
-  return {
-    ...state,
-    waiting: [
-      ...state.waiting,
-      {
-        id: input.id,
-        name: trimmedName,
-        sessionTokenHash: input.sessionTokenHash,
-        joinedAt: now,
-        ...(input.pushSubscription ? { pushSubscription: input.pushSubscription } : {}),
-      },
-    ],
-  };
+  return clearMatchingWaitlistEntry(joined, input.waitlistCredentials);
 }
 
 export interface IdentifiedInput {

@@ -880,11 +880,11 @@ T32
 
 **Done when**:
 
-- [ ] A join with matching `waitlistCredentials` removes exactly that `seatWaitlist` entry, leaves others untouched
-- [ ] A join with no `waitlistCredentials` behaves exactly as before (no `seatWaitlist` change)
-- [ ] A join with a mismatched `id` or `tokenHash` does NOT remove any entry and does NOT throw - the join still succeeds
-- [ ] Gate check passes: `npm run test:unit`
-- [ ] Test count: 4 new test cases minimum
+- [x] A join with matching `waitlistCredentials` removes exactly that `seatWaitlist` entry, leaves others untouched
+- [x] A join with no `waitlistCredentials` behaves exactly as before (no `seatWaitlist` change)
+- [x] A join with a mismatched `id` or `tokenHash` does NOT remove any entry and does NOT throw - the join still succeeds
+- [x] Gate check passes: `npm run test:unit`
+- [x] Test count: 4 new test cases minimum
 
 **Tests**: unit
 **Gate**: quick
