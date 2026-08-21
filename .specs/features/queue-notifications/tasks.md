@@ -471,10 +471,10 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] Existing `finish.integration.test.ts` suite passes unmodified
-- [ ] A finish that promotes the next waiting entry (with a subscription) results in `dispatchAll` receiving a `turn-ready` job
-- [ ] Gate check passes: `npm run test:integration`
-- [ ] Test count: existing suite + 1 new case minimum
+- [x] Existing `finish.integration.test.ts` suite passes unmodified
+- [x] A finish that promotes the next waiting entry (with a subscription) results in `dispatchAll` receiving a `turn-ready` job
+- [x] Gate check passes: `npm run test:integration`
+- [x] Test count: existing suite + 1 new case minimum
 
 **Tests**: integration
 **Gate**: full
