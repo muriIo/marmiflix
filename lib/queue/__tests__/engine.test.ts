@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { applyConfirmTurn, applyFinishHeating, applyJoin, applyLeave, reapExpired } from "../engine";
+import {
+  applyConfirmTurn,
+  applyFinishHeating,
+  applyHeatingCheckpoints,
+  applyJoin,
+  applyLeave,
+  reapExpired,
+} from "../engine";
 import {
   DuplicateNameError,
   ForbiddenError,
@@ -7,6 +14,7 @@ import {
   QueueFullError,
   ValidationError,
   WrongPhaseError,
+  type HeatingCheckpoint,
   type PushSubscriptionRecord,
   type QueueState,
 } from "../types";
@@ -579,5 +587,96 @@ describe("applyFinishHeating", () => {
     const snapshot = structuredClone(state);
     applyFinishHeating(state, { id: "a1", sessionTokenHash: "hash-a1" }, 1_000_030);
     expect(state).toEqual(snapshot);
+  });
+});
+
+describe("applyHeatingCheckpoints", () => {
+  function heatingActiveState(
+    phaseStartedAt: number,
+    notifiedCheckpoints?: HeatingCheckpoint[],
+  ): QueueState {
+    return {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "heating",
+        phaseStartedAt,
+        deadline: phaseStartedAt + 330_000,
+        ...(notifiedCheckpoints ? { notifiedCheckpoints } : {}),
+      },
+      waiting: [],
+      seatWaitlist: [],
+    };
+  }
+
+  it("returns the same state reference and no fired checkpoints when there is no active entry (NOTIF-07, NOTIF-08)", () => {
+    const state = emptyState();
+    const result = applyHeatingCheckpoints(state, 1_000_000);
+
+    expect(result.state).toBe(state);
+    expect(result.fired).toEqual([]);
+  });
+
+  it("returns the same state reference and no fired checkpoints when the active entry is not in the heating phase (NOTIF-07, NOTIF-08)", () => {
+    const now = 1_000_000;
+    const state: QueueState = {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "confirming",
+        phaseStartedAt: now,
+        deadline: now + 60_000,
+      },
+      waiting: [],
+      seatWaitlist: [],
+    };
+    const result = applyHeatingCheckpoints(state, now + 400_000);
+
+    expect(result.state).toBe(state);
+    expect(result.fired).toEqual([]);
+  });
+
+  it("fires heating-ended exactly once when elapsed crosses 300,000ms, not again on a later call with the same notifiedCheckpoints (NOTIF-07)", () => {
+    const phaseStartedAt = 1_000_000;
+    const state = heatingActiveState(phaseStartedAt);
+
+    const firstCall = applyHeatingCheckpoints(state, phaseStartedAt + 300_000);
+    expect(firstCall.fired).toEqual(["heating-ended"]);
+    expect(firstCall.state.active?.notifiedCheckpoints).toEqual(["heating-ended"]);
+
+    const secondCall = applyHeatingCheckpoints(firstCall.state, phaseStartedAt + 310_000);
+    expect(secondCall.fired).toEqual([]);
+  });
+
+  it("fires confirm-finish-ending exactly once when elapsed crosses 320,000ms (NOTIF-08)", () => {
+    const phaseStartedAt = 1_000_000;
+    const state = heatingActiveState(phaseStartedAt, ["heating-ended"]);
+
+    const result = applyHeatingCheckpoints(state, phaseStartedAt + 320_000);
+    expect(result.fired).toEqual(["confirm-finish-ending"]);
+    expect(result.state.active?.notifiedCheckpoints).toEqual([
+      "heating-ended",
+      "confirm-finish-ending",
+    ]);
+
+    const secondCall = applyHeatingCheckpoints(result.state, phaseStartedAt + 325_000);
+    expect(secondCall.fired).toEqual([]);
+  });
+
+  it("fires both checkpoints together when elapsed is checked for the first time past 320,000ms, e.g. after a gap (NOTIF-07, NOTIF-08)", () => {
+    const phaseStartedAt = 1_000_000;
+    const state = heatingActiveState(phaseStartedAt);
+
+    const result = applyHeatingCheckpoints(state, phaseStartedAt + 325_000);
+
+    expect(result.fired).toEqual(["heating-ended", "confirm-finish-ending"]);
+    expect(result.state.active?.notifiedCheckpoints).toEqual([
+      "heating-ended",
+      "confirm-finish-ending",
+    ]);
   });
 });

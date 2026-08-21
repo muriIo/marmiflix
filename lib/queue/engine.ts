@@ -5,6 +5,7 @@ import {
   QueueFullError,
   ValidationError,
   WrongPhaseError,
+  type HeatingCheckpoint,
   type PushSubscriptionRecord,
   type QueueState,
 } from "./types";
@@ -189,4 +190,41 @@ export function applyFinishHeating(
   }
 
   return promoteNextToActive(state, now);
+}
+
+const CONFIRM_FINISH_ENDING_MS = HEATING_WINDOW_MS - 10_000; // 10s before the 5:30 auto-end
+
+export function applyHeatingCheckpoints(
+  state: QueueState,
+  now: number,
+): { state: QueueState; fired: HeatingCheckpoint[] } {
+  if (!state.active || state.active.phase !== "heating") {
+    return { state, fired: [] };
+  }
+
+  const elapsed = now - state.active.phaseStartedAt;
+  const alreadyFired = state.active.notifiedCheckpoints ?? [];
+  const fired: HeatingCheckpoint[] = [];
+
+  if (elapsed >= HEATING_NOMINAL_MS && !alreadyFired.includes("heating-ended")) {
+    fired.push("heating-ended");
+  }
+  if (elapsed >= CONFIRM_FINISH_ENDING_MS && !alreadyFired.includes("confirm-finish-ending")) {
+    fired.push("confirm-finish-ending");
+  }
+
+  if (fired.length === 0) {
+    return { state, fired: [] };
+  }
+
+  return {
+    state: {
+      ...state,
+      active: {
+        ...state.active,
+        notifiedCheckpoints: [...alreadyFired, ...fired],
+      },
+    },
+    fired,
+  };
 }

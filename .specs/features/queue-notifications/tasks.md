@@ -189,12 +189,12 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] Returns `{ state, fired: [] }` unchanged (same reference) when there's no active entry or phase isn't "heating"
-- [ ] Fires `heating-ended` exactly once when elapsed crosses 300,000ms, not again on a later call with the same `notifiedCheckpoints`
-- [ ] Fires `confirm-finish-ending` exactly once when elapsed crosses 320,000ms
-- [ ] Both fire together (same call) when elapsed is checked for the first time past 320,000ms (e.g. state resumed after a gap)
-- [ ] Gate check passes: `npm run test:unit`
-- [ ] Test count: 5 new test cases minimum
+- [x] Returns `{ state, fired: [] }` unchanged (same reference) when there's no active entry or phase isn't "heating"
+- [x] Fires `heating-ended` exactly once when elapsed crosses 300,000ms, not again on a later call with the same `notifiedCheckpoints`
+- [x] Fires `confirm-finish-ending` exactly once when elapsed crosses 320,000ms
+- [x] Both fire together (same call) when elapsed is checked for the first time past 320,000ms (e.g. state resumed after a gap)
+- [x] Gate check passes: `npm run test:unit`
+- [x] Test count: 5 new test cases minimum
 
 **Tests**: unit
 **Gate**: quick
