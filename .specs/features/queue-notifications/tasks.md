@@ -716,13 +716,13 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] A `409` response with `{error, code: "QUEUE_FULL"}` produces a `QueueActionError` with `.code === "QUEUE_FULL"`
-- [ ] A `409` response with no `code` field produces a `QueueActionError` with `.code === undefined` (existing duplicate-name behavior unaffected)
-- [ ] `join("Ana")` (no subscription) sends a body without a `subscription` field, exactly matching current behavior
-- [ ] `join("Ana", subscription)` sends a body including `subscription`
-- [ ] Existing `useQueue.test.ts` suite passes unmodified in its existing assertions
-- [ ] Gate check passes: `npm run test:unit`
-- [ ] Test count: existing suite + 4 new cases minimum
+- [x] A `409` response with `{error, code: "QUEUE_FULL"}` produces a `QueueActionError` with `.code === "QUEUE_FULL"`
+- [x] A `409` response with no `code` field produces a `QueueActionError` with `.code === undefined` (existing duplicate-name behavior unaffected)
+- [x] `join("Ana")` (no subscription) sends a body without a `subscription` field, exactly matching current behavior
+- [x] `join("Ana", subscription)` sends a body including `subscription`
+- [x] Existing `useQueue.test.ts` suite passes unmodified in its existing assertions
+- [x] Gate check passes: `npm run test:unit`
+- [x] Test count: existing suite + 4 new cases minimum
 
 **Tests**: unit
 **Gate**: quick

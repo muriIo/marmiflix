@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clearIdentity, getIdentity, setIdentity } from "../lib/identity";
-import type { QueueView } from "../lib/queue/types";
+import type { PushSubscriptionRecord, QueueView } from "../lib/queue/types";
 
 const POLL_INTERVAL_MS = 2000;
 // Retry delay after the Nth consecutive transport failure (1-indexed), capped at the last entry.
@@ -19,6 +19,7 @@ export class QueueActionError extends Error {
   constructor(
     message: string,
     public readonly status: number,
+    public readonly code?: string,
   ) {
     super(message);
     this.name = "QueueActionError";
@@ -39,7 +40,7 @@ function backoffDelayForFailureCount(failures: number): number {
 }
 
 export interface UseQueueActions {
-  join: (name: string) => Promise<void>;
+  join: (name: string, subscription?: PushSubscriptionRecord) => Promise<void>;
   leave: () => Promise<void>;
   confirmTurn: () => Promise<void>;
   finish: () => Promise<void>;
@@ -114,7 +115,8 @@ export function useQueue(): UseQueueResult {
       const data = await parseJsonBody(response);
       if (!response.ok) {
         const message = typeof data.error === "string" ? data.error : "Erro desconhecido";
-        throw new QueueActionError(message, response.status);
+        const code = typeof data.code === "string" ? data.code : undefined;
+        throw new QueueActionError(message, response.status, code);
       }
       noteSuccess();
       return data;
@@ -182,8 +184,12 @@ export function useQueue(): UseQueueResult {
   const now = useCallback(() => Date.now() + offsetRef.current, []);
 
   const join = useCallback(
-    async (name: string) => {
-      const data = await callQueueApi("/api/queue/join", { name });
+    async (name: string, subscription?: PushSubscriptionRecord) => {
+      const body: Record<string, unknown> = { name };
+      if (subscription) {
+        body.subscription = subscription;
+      }
+      const data = await callQueueApi("/api/queue/join", body);
       setIdentity({
         id: data.id as string,
         name,
