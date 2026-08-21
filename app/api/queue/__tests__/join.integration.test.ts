@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QUEUE_STATE_KEY, getState } from "../../../../lib/queue/store";
 import { redis } from "../../../../lib/queue/redis-client";
+import { hashToken } from "../../../../lib/queue/session";
 import type { PushSubscriptionRecord, QueueState } from "../../../../lib/queue/types";
 import { POST as join } from "../join/route";
 
@@ -160,5 +161,84 @@ describe("POST /api/queue/join", () => {
 
     expect(response.status).toBe(200);
     expect(dispatchAll).not.toHaveBeenCalled();
+  });
+
+  it("removes the matching waitlist registration when a valid waitlistId/waitlistToken pair is provided (NOTIF-25)", async () => {
+    const rawToken = "waitlist-raw-token";
+    const seeded: QueueState = {
+      version: 1,
+      active: null,
+      waiting: [],
+      seatWaitlist: [
+        {
+          id: "wl1",
+          tokenHash: hashToken(rawToken),
+          subscription: { endpoint: "https://push.example/wl1", keys: { p256dh: "p", auth: "a" } },
+          registeredAt: Date.now() - 1000,
+        },
+      ],
+    };
+    await redis.set(QUEUE_STATE_KEY, seeded);
+
+    const response = await join(
+      joinRequestRaw({ name: "Ana", waitlistId: "wl1", waitlistToken: rawToken }, "10.0.0.2"),
+    );
+
+    expect(response.status).toBe(200);
+    const state = await getState();
+    expect(state.seatWaitlist.find((entry) => entry.id === "wl1")).toBeUndefined();
+  });
+
+  it("leaves the registration in place and still succeeds when waitlistToken is mismatched (NOTIF-25)", async () => {
+    const seeded: QueueState = {
+      version: 1,
+      active: null,
+      waiting: [],
+      seatWaitlist: [
+        {
+          id: "wl2",
+          tokenHash: hashToken("correct-token"),
+          subscription: { endpoint: "https://push.example/wl2", keys: { p256dh: "p", auth: "a" } },
+          registeredAt: Date.now() - 1000,
+        },
+      ],
+    };
+    await redis.set(QUEUE_STATE_KEY, seeded);
+
+    const response = await join(
+      joinRequestRaw(
+        { name: "Bruno", waitlistId: "wl2", waitlistToken: "wrong-token" },
+        "10.0.0.3",
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    const state = await getState();
+    expect(state.seatWaitlist.find((entry) => entry.id === "wl2")).toBeDefined();
+  });
+
+  it("behaves exactly as before when neither waitlistId nor waitlistToken is provided (NOTIF-25)", async () => {
+    const seeded: QueueState = {
+      version: 1,
+      active: null,
+      waiting: [],
+      seatWaitlist: [
+        {
+          id: "wl3",
+          tokenHash: hashToken("some-token"),
+          subscription: { endpoint: "https://push.example/wl3", keys: { p256dh: "p", auth: "a" } },
+          registeredAt: Date.now() - 1000,
+        },
+      ],
+    };
+    await redis.set(QUEUE_STATE_KEY, seeded);
+
+    const response = await join(joinRequest("Carla", "10.0.0.4"));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    const state = await getState();
+    expect(state.seatWaitlist).toEqual(seeded.seatWaitlist);
+    expect(state.active?.id).toBe(body.id);
   });
 });

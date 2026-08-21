@@ -48,7 +48,12 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  let body: { name?: unknown; subscription?: unknown } = {};
+  let body: {
+    name?: unknown;
+    subscription?: unknown;
+    waitlistId?: unknown;
+    waitlistToken?: unknown;
+  } = {};
   try {
     body = await request.json();
   } catch {
@@ -56,6 +61,12 @@ export async function POST(request: Request): Promise<Response> {
   }
   const name = typeof body.name === "string" ? body.name : "";
   const pushSubscription = isValidSubscription(body.subscription) ? body.subscription : undefined;
+  const waitlistId = typeof body.waitlistId === "string" ? body.waitlistId : undefined;
+  const waitlistToken = typeof body.waitlistToken === "string" ? body.waitlistToken : undefined;
+  const waitlistCredentials =
+    waitlistId && waitlistToken
+      ? { id: waitlistId, tokenHash: hashToken(waitlistToken) }
+      : undefined;
 
   const id = randomUUID();
   const sessionToken = generateSessionToken();
@@ -65,7 +76,11 @@ export async function POST(request: Request): Promise<Response> {
   let notificationJobs: NotificationJob[];
   try {
     ({ result: mutationResult, notificationJobs } = await withQueueMutation((state, now) => {
-      const next = applyJoin(state, { id, name, sessionTokenHash, pushSubscription }, now);
+      const next = applyJoin(
+        state,
+        { id, name, sessionTokenHash, pushSubscription, waitlistCredentials },
+        now,
+      );
       return { next, result: { state: next, now } };
     }));
   } catch (error) {

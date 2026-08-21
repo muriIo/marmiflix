@@ -908,11 +908,11 @@ T32
 
 **Done when**:
 
-- [ ] A join with a valid, matching `waitlistId`/`waitlistToken` pair (from a prior `waitlist/join` registration) results in that registration being removed from `QueueState`
-- [ ] A join with a mismatched `waitlistToken` still succeeds and leaves the registration in place
-- [ ] A join with neither field behaves exactly as before (existing `join.integration.test.ts` assertions unaffected)
-- [ ] Gate check passes: `npm run test:integration`
-- [ ] Test count: existing suite + 3 new cases minimum
+- [x] A join with a valid, matching `waitlistId`/`waitlistToken` pair (from a prior `waitlist/join` registration) results in that registration being removed from `QueueState`
+- [x] A join with a mismatched `waitlistToken` still succeeds and leaves the registration in place
+- [x] A join with neither field behaves exactly as before (existing `join.integration.test.ts` assertions unaffected)
+- [x] Gate check passes: `npm run test:integration`
+- [x] Test count: existing suite + 3 new cases minimum
 
 **Tests**: integration
 **Gate**: full
