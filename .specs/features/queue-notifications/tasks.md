@@ -637,7 +637,7 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] A deployer following the doc top-to-bottom can generate keys, set them on Vercel, and understand why no extra build config is needed for the service worker
+- [x] A deployer following the doc top-to-bottom can generate keys, set them on Vercel, and understand why no extra build config is needed for the service worker
 
 **Tests**: none
 **Gate**: build

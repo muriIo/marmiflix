@@ -30,7 +30,28 @@ in step 2 - verify both are present under **Settings → Environment Variables**
 
 See `.env.example` for the full description of what these values are for.
 
-## 4. Add the custom domain
+## 4. Set up Web Push notifications (queue-notifications)
+
+1. Generate a VAPID key pair locally: `npx web-push generate-vapid-keys`. This
+   prints a Public Key and a Private Key - keep the private key secret.
+2. In the Vercel project, go to **Settings → Environment Variables** and add,
+   for the Production environment:
+
+   | Variable | Value |
+   | --- | --- |
+   | `VAPID_PUBLIC_KEY` | The generated Public Key |
+   | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | The same Public Key (must match `VAPID_PUBLIC_KEY` exactly - the browser bundle reads this `NEXT_PUBLIC_` copy) |
+   | `VAPID_PRIVATE_KEY` | The generated Private Key |
+   | `VAPID_SUBJECT` | An `https:` or `mailto:` URI you control (e.g. `mailto:you@example.com` or `https://marmiflix.cruz.dev.br`) |
+
+   See `.env.example` for the same descriptions inline with the other env vars.
+3. Redeploy the project so the new env vars take effect.
+4. No extra build configuration is needed for the service worker: `public/sw.js`
+   is a plain static file that Next.js serves as-is from the site root
+   (`/sw.js`) on every deploy - there's no bundler step, no build flag, and no
+   separate registration to configure server-side.
+
+## 5. Add the custom domain
 
 1. In the Vercel project, go to **Settings → Domains**.
 2. Add `marmiflix.cruz.dev.br`.
