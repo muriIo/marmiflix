@@ -112,6 +112,28 @@ T16 -> T24
 T17 -> T24
 T21 -> T24
 T21 -> T25
+T8 -> T26
+T1 -> T27
+T2 -> T27
+T11 -> T28
+T25 -> T29
+T23 -> T29
+T9 -> T30
+T4 -> T31
+T8 -> T31
+T9 -> T32
+```
+
+### Phase 7: Verifier Fix Round 1
+
+Fix tasks routed from the independent Verifier's FAIL report (`validation.md`, diff range `b467782..899c429`). Each cites the exact gap it closes.
+
+```
+T27 → T28 → T29
+T26
+T30
+T31
+T32
 ```
 
 ---
@@ -816,6 +838,196 @@ T21 -> T25
 
 ---
 
+### T26: Include the scenario in the push payload (Verifier Fix 1 - NOTIF-23, Blocker)
+
+**What**: `dispatchNotificationJob` currently sends `JSON.stringify(buildNotificationPayload(job.scenario))`, which serializes to `{title, body}` only. `design.md` specifies the relayed push payload as `{scenario, title, body}`. Without `scenario`, `components/queue/QueueFull.tsx`'s `data?.scenario === "seat-opened"` guard can never be true (the focused-tab chime/vibration for the seat-opened scenario is unreachable) and `public/sw.js`'s `tag: data.scenario` is always `undefined`. Change the serialized payload to `JSON.stringify({ scenario: job.scenario, ...buildNotificationPayload(job.scenario) })`.
+**Where**: `lib/notifications/dispatcher.ts`
+**Depends on**: T8
+**Reuses**: Existing `buildNotificationPayload` call - only the serialized object gains one field
+**Requirement**: NOTIF-23
+
+**Tools**:
+
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+
+- [ ] The JSON payload passed to `webpush.sendNotification` contains `scenario`, `title`, and `body` for every job
+- [ ] `lib/notifications/__tests__/dispatcher.test.ts` strengthened: the existing payload assertion now also asserts `expect(parsedPayload.scenario).toBe(job.scenario)`, plus an `it.each` over all four `NotificationScenario` values confirming `scenario` round-trips into the sent payload
+- [ ] Gate check passes: `npm run test:unit`
+- [ ] Test count: existing suite + at least 4 new/strengthened assertions (one per scenario) - no silent deletions
+
+**Tests**: unit
+**Gate**: quick
+
+**Commit**: `fix(notifications): include scenario in the push payload`
+
+---
+
+### T27: Let a join clear a matching waitlist registration (Verifier Fix 2a - NOTIF-25, Major)
+
+**What**: A successful join never removed the visitor's seat-opened waitlist registration - the AC was never assigned to a task during the original Tasks phase. Add an optional `waitlistCredentials?: { id: string; tokenHash: string }` to `JoinInput` in `lib/queue/engine.ts`; inside `applyJoin`, after building the join result, if `waitlistCredentials` is present and matches a `state.seatWaitlist` entry by `id` AND `tokenHash`, remove that entry from the returned state's `seatWaitlist`. A missing/mismatched id or token is a silent no-op (does not fail the join) - mirrors the "does not fail the join" requirement from the spec's Independent Test.
+**Where**: `lib/queue/engine.ts`
+**Depends on**: T1, T2
+**Reuses**: The same `find`-by-id-then-hash-compare shape already used by `authorizeEntry`/`applyAttachPushSubscription`
+**Requirement**: NOTIF-25
+
+**Tools**:
+
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+
+- [ ] A join with matching `waitlistCredentials` removes exactly that `seatWaitlist` entry, leaves others untouched
+- [ ] A join with no `waitlistCredentials` behaves exactly as before (no `seatWaitlist` change)
+- [ ] A join with a mismatched `id` or `tokenHash` does NOT remove any entry and does NOT throw - the join still succeeds
+- [ ] Gate check passes: `npm run test:unit`
+- [ ] Test count: 4 new test cases minimum
+
+**Tests**: unit
+**Gate**: quick
+
+**Commit**: `feat(queue-engine): clear a matching waitlist registration on join`
+
+---
+
+### T28: Accept waitlist credentials on the join route (Verifier Fix 2b - NOTIF-25, Major)
+
+**What**: In `app/api/queue/join/route.ts`, accept optional `waitlistId`/`waitlistToken` fields on the request body (typed as `unknown`, validated as strings before use); when both are present, hash `waitlistToken` (`hashToken`, reused) and pass `{ id: waitlistId, tokenHash }` as `applyJoin`'s new `waitlistCredentials` argument (T27). Absent fields behave exactly as today (no `waitlistCredentials` passed).
+**Where**: `app/api/queue/join/route.ts`
+**Depends on**: T27, T11
+**Reuses**: `hashToken` (already imported in this file), the existing body-validation shape
+**Requirement**: NOTIF-25
+
+**Tools**:
+
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+
+- [ ] A join with a valid, matching `waitlistId`/`waitlistToken` pair (from a prior `waitlist/join` registration) results in that registration being removed from `QueueState`
+- [ ] A join with a mismatched `waitlistToken` still succeeds and leaves the registration in place
+- [ ] A join with neither field behaves exactly as before (existing `join.integration.test.ts` assertions unaffected)
+- [ ] Gate check passes: `npm run test:integration`
+- [ ] Test count: existing suite + 3 new cases minimum
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `feat(queue-api): accept waitlist credentials on join to clear the registration`
+
+---
+
+### T29: Forward the stored waitlist registration on join and clear it on success (Verifier Fix 2c - NOTIF-25, Major)
+
+**What**: In `components/queue/Landing.tsx`, when a stored waitlist registration exists (`getWaitlistIdentity()`), forward its `id`/`token` on the join call (extending `queue.actions.join` or the underlying request body per T28's new fields) and call `clearWaitlistIdentity()` after a successful join.
+**Where**: `components/queue/Landing.tsx`
+**Depends on**: T28, T25, T23
+**Reuses**: `getWaitlistIdentity`/`clearWaitlistIdentity` (T23), the existing `handleJoin` flow (T25)
+**Requirement**: NOTIF-25
+
+**Tools**:
+
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+
+- [ ] A join performed while a stored waitlist registration exists forwards its credentials and clears local storage on success
+- [ ] A join performed with no stored registration behaves exactly as before
+- [ ] No TypeScript errors: `npm run typecheck`
+
+**Tests**: none
+**Gate**: quick
+
+**Commit**: `feat(landing): clear the stored waitlist registration after a successful join`
+
+---
+
+### T30: Assert the seat-opened broadcast does not fire while the queue is still full (Verifier Fix 3 - NOTIF-22, Major - surviving mutant)
+
+**What**: The independent Verifier's discrimination sensor found that removing the `isFullNow` half of `lib/queue/store.ts`'s seat-opened guard (`if (!wasFull || isFullNow)` → `if (!wasFull)`) survived the full integration gate - no test asserts the "count actually drops below 100" precondition, only the legitimate 100→99 drop. Add the missing negative case: seed a state at exactly 100 seats (active `confirming` + 99 waiting) with one `seatWaitlist` subscriber, run a mutation that leaves the count at 100 (e.g. `applyConfirmTurn` on the active entry), and assert no `seat-opened` job is produced.
+**Where**: `lib/queue/__tests__/with-queue-mutation.integration.test.ts`
+**Depends on**: T9
+**Reuses**: The existing seat-opened test setup at this file's `:233`/`:282` cases
+**Requirement**: NOTIF-22
+
+**Tools**:
+
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+
+- [ ] A mutation that leaves the active+waiting count at 100 (not dropping below) produces zero `seat-opened` jobs, even with a non-empty `seatWaitlist`
+- [ ] Re-running the sensor mutation described above (`if (!wasFull || isFullNow)` → `if (!wasFull)`) against this suite now fails (mutant killed)
+- [ ] Gate check passes: `npm run test:integration`
+- [ ] Test count: existing suite + 1 new case minimum
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `test(queue-store): assert no seat-opened broadcast while the queue stays full`
+
+---
+
+### T31: Wire invalid-subscription pruning to every dispatch call site (Verifier Fix 4 - spec Edge Case, Major)
+
+**What**: `dispatchAll`'s ability to identify invalid (404/410) recipients exists (`dispatchNotificationJob`'s return value) but no production call site ever prunes them - all five routes call `after(() => dispatchAll(notificationJobs))` with no prune step, so `applyPruneSubscriptions` (T4) is dead in production and invalid subscriptions accumulate in `QueueState` forever. Make `dispatchAll` perform the prune itself by default: after collecting invalid recipients' endpoints across all jobs, call `withQueueMutation` (from `lib/queue/store.ts`) wrapping `applyPruneSubscriptions` when the invalid list is non-empty. No route-handler call sites need to change - they already call `dispatchAll(notificationJobs)` and get pruning "for free."
+**Where**: `lib/notifications/dispatcher.ts`
+**Depends on**: T8, T4
+**Reuses**: `withQueueMutation` (`lib/queue/store.ts`), `applyPruneSubscriptions` (`lib/queue/engine.ts`, T4)
+**Requirement**: (spec Edge Case: "a rejected/invalid subscription is discarded rather than retried")
+
+**Tools**:
+
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+
+- [ ] Seeding an entry with a subscription, mocking `web-push` to reject it with `statusCode: 410`, and triggering a dispatching route results in that subscription being removed from `QueueState` (`state.active?.pushSubscription` or the matching `waiting`/`seatWaitlist` entry, whichever applies)
+- [ ] A `seatWaitlist` equivalent is covered (an invalid waitlist subscriber's entry gets its `subscription` pruned or the entry itself removed - whichever `applyPruneSubscriptions` already does per T4, unchanged here)
+- [ ] A healthy recipient's delivery in the same job is unaffected by another recipient's invalid subscription (existing `Promise.allSettled` isolation preserved)
+- [ ] Gate check passes: `npm run test:integration`
+- [ ] Test count: 3 new integration test cases minimum
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `fix(notifications): prune invalid push subscriptions after every dispatch`
+
+---
+
+### T32: Assert the seat cap under concurrent joins at the 99/100 boundary (Verifier Fix 5 - NOTIF-18, Minor)
+
+**What**: The 100-seat cap is enforced inside the CAS retry loop (same mechanism already proven race-safe generically by the existing `QUEUE-19` concurrency test), but no test drives two concurrent joins specifically at the 99→100 boundary - the spec's own Success Criterion calls this out explicitly ("the queue never holds more than 100 active+waiting entries, even under concurrent join attempts at the boundary"). Add that test: seed a state at 99 seats, fire two concurrent `applyJoin`-driven mutations (mirroring the existing concurrency test's pattern), and assert exactly one succeeds, the other throws `QueueFullError`, and the final count is exactly 100.
+**Where**: `lib/queue/__tests__/with-queue-mutation.integration.test.ts`
+**Depends on**: T9
+**Reuses**: The existing `QUEUE-19` concurrent-join test pattern at this file's `:12`
+**Requirement**: NOTIF-18
+
+**Tools**:
+
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+
+- [ ] Two concurrent joins fired at exactly 99 seats result in exactly one success and one `QueueFullError`, with the final count equal to 100 (never 101)
+- [ ] Gate check passes: `npm run test:integration`
+- [ ] Test count: existing suite + 1 new case minimum
+
+**Tests**: integration
+**Gate**: full
+
+**Commit**: `test(queue-store): assert the seat cap holds under concurrent joins at the boundary`
+
+---
+
 ## Phase Execution Map
 
 ```
@@ -833,6 +1045,11 @@ Phase 4:  T16 → T17
 Phase 5:  T20 → T21
 Phase 6:  T23 → T24 → T25
           T22 → T25
+Phase 7:  T27 → T28 → T29
+          T26
+          T30
+          T31
+          T32
 ```
 
 Execution is strictly sequential - there is no intra-phase parallelism. A single agent (or batch worker) works one task at a time, in order. Within Phase 3, tasks have no dependencies on each other (each independently wires one existing route to the new `withQueueMutation` return shape and `after()`), so their listed order (T10-T14) is execution convenience, not a dependency chain.
@@ -863,6 +1080,13 @@ Execution is strictly sequential - there is no intra-phase parallelism. A single
 | T23: Waitlist identity | 1 file | ✅ Granular |
 | T24: QueueFull component | 1 file | ✅ Granular |
 | T25: Landing wiring | 1 file | ✅ Granular |
+| T26: Payload scenario fix | 1 file, 1-line change | ✅ Granular |
+| T27: Engine waitlist-clear-on-join | 1 file, 1 function extension | ✅ Granular |
+| T28: Join route waitlist credentials | 1 file | ✅ Granular |
+| T29: Landing waitlist-clear wiring | 1 file | ✅ Granular |
+| T30: Seat-opened negative test | 1 file, test-only | ✅ Granular |
+| T31: Prune wiring in dispatcher | 1 file | ✅ Granular |
+| T32: Seat-cap concurrency test | 1 file, test-only | ✅ Granular |
 
 No task spans multiple files. No further splitting needed.
 
@@ -894,6 +1118,13 @@ No task spans multiple files. No further splitting needed.
 | T22 | T6 | T6 → T22 (Cross-Phase block) | ✅ Match |
 | T24 | T21, T23, T16, T17 | T23 → T24 (Phase 6 block), T21 → T24, T16 → T24, T17 → T24 (Cross-Phase block) | ✅ Match |
 | T25 | T21, T22, T24, T11 | T22 → T25, T24 → T25 (Phase 6 block), T21 → T25, T11 → T25 (Cross-Phase block) | ✅ Match |
+| T26 | T8 | T8 → T26 (Cross-Phase block) | ✅ Match |
+| T27 | T1, T2 | T1 → T27, T2 → T27 (Cross-Phase block) | ✅ Match |
+| T28 | T27, T11 | T27 → T28 (Phase 7 block), T11 → T28 (Cross-Phase block) | ✅ Match |
+| T29 | T28, T25, T23 | T28 → T29 (Phase 7 block), T25 → T29, T23 → T29 (Cross-Phase block) | ✅ Match |
+| T30 | T9 | T9 → T30 (Cross-Phase block) | ✅ Match |
+| T31 | T8, T4 | T8 → T31, T4 → T31 (Cross-Phase block) | ✅ Match |
+| T32 | T9 | T9 → T32 (Cross-Phase block) | ✅ Match |
 
 Every `Depends on` edge across the whole task set - intra-phase and cross-phase alike - has a matching diagram arrow, either in its phase's block or the Cross-Phase Dependency Edges block. `python3 validate_tasks.py` confirms this deterministically (0 errors).
 
@@ -928,6 +1159,13 @@ Every `Depends on` edge across the whole task set - intra-phase and cross-phase 
 | T23 | Browser helper | unit | unit | ✅ OK |
 | T24 | UI component | none | none | ✅ OK |
 | T25 | UI component | none | none | ✅ OK |
+| T26 | Domain logic | unit | unit | ✅ OK |
+| T27 | Domain logic | unit | unit | ✅ OK |
+| T28 | Route handler | integration | integration | ✅ OK |
+| T29 | UI component | none | none | ✅ OK |
+| T30 | CAS orchestration | integration | integration | ✅ OK |
+| T31 | Domain logic (route-adjacent dispatch) | integration | integration | ✅ OK |
+| T32 | CAS orchestration | integration | integration | ✅ OK |
 
 No violations. Every `Tests: none` task maps to a matrix row that says `none`.
 
