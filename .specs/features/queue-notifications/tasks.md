@@ -525,13 +525,13 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] A valid `id`/`sessionToken`/`subscription` for an existing entry (active or waiting) attaches the subscription and returns `200 { ok: true }`
-- [ ] An unknown `id` returns `404`
-- [ ] A mismatched `sessionToken` returns `403`
-- [ ] A malformed `subscription` shape returns `400`
-- [ ] Rate limiting matches the existing per-route pattern (429 after the threshold)
-- [ ] Gate check passes: `npm run test:integration`
-- [ ] Test count: 5 new integration test cases minimum
+- [x] A valid `id`/`sessionToken`/`subscription` for an existing entry (active or waiting) attaches the subscription and returns `200 { ok: true }`
+- [x] An unknown `id` returns `404`
+- [x] A mismatched `sessionToken` returns `403`
+- [x] A malformed `subscription` shape returns `400`
+- [x] Rate limiting matches the existing per-route pattern (429 after the threshold)
+- [x] Gate check passes: `npm run test:integration`
+- [x] Test count: 5 new integration test cases minimum
 
 **Tests**: integration
 **Gate**: full
