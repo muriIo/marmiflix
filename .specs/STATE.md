@@ -20,13 +20,13 @@
 
 ## Handoff
 
-- **Feature**: lunchbox-queue / `.specs/features/lunchbox-queue/` - **COMPLETE**
-- **Phase / Task**: All 7 phases / all 35 tasks (T1-T35) done and committed. Verifier ran and returned PASS (see `.specs/features/lunchbox-queue/validation.md`): 110/110 tests green, 3/3 discrimination-sensor mutants killed, 22/23 spec-anchored ACs matched exactly (1 documented spec-precision gap on QUEUE-18's "3s" bound, satisfied by construction via the 2s poll interval but not directly measured by an e2e test - not a blocker).
-- **Completed**: T1-T35, plus the validation report + lessons commit (`cc736a1`).
-- **In-progress (file:line)**: none - working tree is clean apart from the pre-existing harmless `check_commit.py` file-mode diff (100644->100755, safe to ignore or commit separately at will).
-- **Next step**: No implementation work pending. Two candidate lessons (L-001, L-002) sit in `.specs/lessons.json` at `candidate` status awaiting promotion/review per the skill's lessons workflow - optional. Otherwise the only remaining actions are remote/deploy ones requiring explicit go-ahead: `git push` (branch is ahead of `origin/main`), and actually executing `DEPLOYMENT.md`'s steps (create the Vercel project, install the Upstash Marketplace integration, add the `marmiflix.cruz.dev.br` domain + DNS record).
+- **Feature**: queue-notifications / `.specs/features/queue-notifications/` - **VERIFIED (PASS)**, pending manual UAT
+- **Phase / Task**: All 32 tasks (T1-T32) done and committed on branch `feat/queue-notifications` (worktree `.claude/worktrees/agent-a9530b73a3ea83b00`), 36 commits ahead of `main`. Fix round 1 (T26-T32) addressed all 5 gaps from the first Verifier pass; a fresh re-verification Verifier confirmed all 5 closed with `file:line` evidence, ran a clean gate (205 tests: 135 unit + 70 integration, 0 failed), and killed 4/4 discrimination-sensor mutations (including reproducing and killing the round-1 survivor). See `.specs/features/queue-notifications/validation.md` ("Re-verification (Fix Round 1)" section) - overall verdict PASS.
+- **Completed**: T1-T32, plus both validation report commits (`c4849da` round 1, `4f238ca` round 2) and the round-1 lessons commit (`1aad827`).
+- **In-progress (file:line)**: none - working tree clean.
+- **Next step**: No implementation work pending. Two things remain, both optional/deferred by design: (1) Interactive UAT in a real browser for the SW (`public/sw.js`) and UI (`components/queue/*.tsx`) layers - 5 manual checklist items pre-flagged in `tasks.md` (T5, T20, T24, T25) as having no automated test path in this repo; (2) merge/push - branch `feat/queue-notifications` is not yet merged into `main` or pushed to `origin`, needs explicit go-ahead per the skill's blast-radius rule.
 - **Blockers**: none.
-- **Uncommitted files**: none (aside from the harmless `check_commit.py` mode diff noted above).
-- **Branch**: main, ahead of `origin/main` by the full feature history - not yet pushed; push needs explicit go-ahead per the skill's blast-radius rule.
+- **Uncommitted files**: none.
+- **Branch**: `feat/queue-notifications` (in the worktree above), 36 commits ahead of `main` - not merged, not pushed.
 
-**Other state to know on resume**: Docker test stack (`docker compose -f docker-compose.test.yml up -d` - Redis + `serverless-redis-http`) and any `next dev` server were stopped and `queue:state` cleared in Redis at the end of this session - start fresh if resuming manual testing.
+**Other state to know on resume**: the docker test stack for this worktree (`docker-compose.test.yml` - Redis + serverless-redis-http, containers prefixed `agent-a9530b73a3ea83b00-`) was started during this re-verification session and is currently still running on ports 6379/8079 - stop it with `docker compose -f docker-compose.test.yml down` in the worktree dir if no longer needed. lunchbox-queue (prior feature) remains COMPLETE and merged into `main` via PR #1 - see `.specs/features/lunchbox-queue/validation.md` for its own history.
