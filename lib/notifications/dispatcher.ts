@@ -54,7 +54,10 @@ function isInvalidSubscriptionError(reason: unknown): boolean {
 export async function dispatchNotificationJob(
   job: NotificationJob,
 ): Promise<PushSubscriptionRecord[]> {
-  const payload = JSON.stringify(buildNotificationPayload(job.scenario));
+  const payload = JSON.stringify({
+    scenario: job.scenario,
+    ...buildNotificationPayload(job.scenario),
+  });
 
   const results = await Promise.allSettled(
     job.recipients.map((recipient) => push.sendNotification(recipient, payload)),

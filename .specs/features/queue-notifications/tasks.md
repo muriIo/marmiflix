@@ -853,10 +853,10 @@ T32
 
 **Done when**:
 
-- [ ] The JSON payload passed to `webpush.sendNotification` contains `scenario`, `title`, and `body` for every job
-- [ ] `lib/notifications/__tests__/dispatcher.test.ts` strengthened: the existing payload assertion now also asserts `expect(parsedPayload.scenario).toBe(job.scenario)`, plus an `it.each` over all four `NotificationScenario` values confirming `scenario` round-trips into the sent payload
-- [ ] Gate check passes: `npm run test:unit`
-- [ ] Test count: existing suite + at least 4 new/strengthened assertions (one per scenario) - no silent deletions
+- [x] The JSON payload passed to `webpush.sendNotification` contains `scenario`, `title`, and `body` for every job
+- [x] `lib/notifications/__tests__/dispatcher.test.ts` strengthened: the existing payload assertion now also asserts `expect(parsedPayload.scenario).toBe(job.scenario)`, plus an `it.each` over all four `NotificationScenario` values confirming `scenario` round-trips into the sent payload
+- [x] Gate check passes: `npm run test:unit`
+- [x] Test count: existing suite + at least 4 new/strengthened assertions (one per scenario) - no silent deletions
 
 **Tests**: unit
 **Gate**: quick

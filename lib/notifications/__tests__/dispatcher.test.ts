@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PushSubscriptionRecord } from "../../queue/types";
-import type { NotificationJob } from "../types";
+import type { NotificationJob, NotificationScenario } from "../types";
+
+const SCENARIOS: NotificationScenario[] = [
+  "turn-ready",
+  "heating-ended",
+  "confirm-finish-ending",
+  "seat-opened",
+];
 
 const sendNotification = vi.fn();
 const setVapidDetails = vi.fn();
@@ -48,10 +55,26 @@ describe("dispatchNotificationJob", () => {
     const [firstRecipientArg, firstPayloadArg] = sendNotification.mock.calls[0];
     expect(firstRecipientArg).toEqual(recipients[0]);
     const parsedPayload = JSON.parse(firstPayloadArg as string);
+    expect(parsedPayload.scenario).toBe(job.scenario);
     expect(typeof parsedPayload.title).toBe("string");
     expect(parsedPayload.title.length).toBeGreaterThan(0);
     expect(typeof parsedPayload.body).toBe("string");
   });
+
+  it.each(SCENARIOS)(
+    "includes scenario %s in the serialized payload sent to sendNotification (NOTIF-23)",
+    async (scenario) => {
+      const { dispatchNotificationJob } = await importDispatcher();
+      sendNotification.mockResolvedValue({ statusCode: 201 });
+
+      const recipient = makeSubscription("scenario-check");
+      await dispatchNotificationJob({ scenario, recipients: [recipient] });
+
+      const [, payloadArg] = sendNotification.mock.calls[0];
+      const parsedPayload = JSON.parse(payloadArg as string);
+      expect(parsedPayload.scenario).toBe(scenario);
+    },
+  );
 
   it("returns a recipient whose sendNotification rejection carries statusCode 410 as invalid", async () => {
     const { dispatchNotificationJob } = await importDispatcher();
