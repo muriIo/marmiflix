@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { formatDuration } from "../../lib/format";
+import { HEATING_URGENCY_MS } from "../../lib/queue/engine";
 import type { UseQueueResult } from "../../hooks/useQueue";
-
-const URGENCY_WINDOW_MS = 15_000;
 
 export function Heating({ queue }: { queue: UseQueueResult }) {
   const [submitting, setSubmitting] = useState(false);
   const deadline = queue.view?.self?.deadline ?? null;
   const phaseStartedAt =
-    deadline !== null ? deadline - (5 * 60 * 1000 + URGENCY_WINDOW_MS) : null;
+    deadline !== null ? deadline - (5 * 60 * 1000 + HEATING_URGENCY_MS) : null;
 
   const [now, setNow] = useState(() => queue.now());
 
@@ -21,7 +20,7 @@ export function Heating({ queue }: { queue: UseQueueResult }) {
 
   const elapsedMs = phaseStartedAt !== null ? Math.max(0, now - phaseStartedAt) : 0;
   const remainingMs = deadline !== null ? Math.max(0, deadline - now) : 0;
-  const isUrgent = deadline !== null && remainingMs <= URGENCY_WINDOW_MS;
+  const isUrgent = deadline !== null && remainingMs <= HEATING_URGENCY_MS;
 
   async function handleFinish() {
     if (submitting) {

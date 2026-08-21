@@ -245,10 +245,10 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] No local `URGENCY_WINDOW_MS` constant remains in the file
-- [ ] The urgency visual flag now activates in the last 30s (5:00-5:30) instead of 15s
-- [ ] No TypeScript errors: `npm run typecheck`
-- [ ] Manually verified in a running `next dev` session that the countdown display and urgency styling still render correctly across the full 0:00-5:30 range (component has no automated test layer in this repo)
+- [x] No local `URGENCY_WINDOW_MS` constant remains in the file
+- [x] The urgency visual flag now activates in the last 30s (5:00-5:30) instead of 15s
+- [x] No TypeScript errors: `npm run typecheck`
+- [ ] Manually verified in a running `next dev` session that the countdown display and urgency styling still render correctly across the full 0:00-5:30 range (component has no automated test layer in this repo) - NOT performed by this batch worker (no browser/interactive session available in this sandboxed environment); the code change is a mechanical constant-source swap only, logic otherwise untouched. Flagged as a deferred manual-verification item, consistent with this component's existing no-automated-test-layer status.
 
 **Tests**: none
 **Gate**: quick
