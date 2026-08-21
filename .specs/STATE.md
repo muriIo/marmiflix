@@ -10,6 +10,14 @@
 - **Date**: 2026-08-18
 - **Status**: active
 
+### AD-002
+- **Decision**: Out-of-tab attention (Web Push) is delivered via VAPID Web Push (`web-push` npm package, server-side only), with channel selection (OS push notification vs. in-tab sound/vibration) decided by the visitor's **service worker** at delivery time - via `clients.matchAll()` + `WindowClient.focused` - rather than by the server tracking focus state. Server-side event detection (heating-elapsed checkpoints, turn/seat-opened transitions) is piggybacked onto the existing lazy on-read `withQueueMutation` path (same pattern as `reapExpired`), not a new scheduler/cron. Background push delivery uses Next.js `after()` (`next/server`, stable since 15.1) called at the route-handler level, not raw fire-and-forget promises.
+- **Reason**: Only the browser knows its own live focus state without staleness, so putting channel selection there avoids inventing a server-side heartbeat/presence channel. Event detection via the existing lazy on-read path conforms to `AD-001`'s no-cron/no-persistent-process constraint instead of introducing a new mechanism.
+- **Trade-off**: Checkpoint/event timing precision is bounded by the polling interval (~2s), same class of imprecision `AD-001` already accepted for realtime sync - not a new risk, just applied to a second use case. `after()`'s request-scoped execution must be called from the route handler itself, not a deep helper, to reliably attach to the in-flight request.
+- **Scope**: Whole app (feature: `queue-notifications`) - any future feature adding a new out-of-tab notification scenario should route through the existing `lib/notifications/` dispatch + strategy registry rather than building a parallel mechanism.
+- **Date**: 2026-08-21
+- **Status**: active
+
 ## Handoff
 
 - **Feature**: lunchbox-queue / `.specs/features/lunchbox-queue/` - **COMPLETE**
