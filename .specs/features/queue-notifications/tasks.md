@@ -687,12 +687,12 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] Returns `null` (never throws) when `PushManager`/`Notification`/`serviceWorker` is unsupported (mocked absent in test)
-- [ ] Returns `null` when permission is denied (mocked `"denied"`)
-- [ ] Returns a `PushSubscriptionRecord`-shaped object on the granted/success path (mocked `pushManager.subscribe`)
-- [ ] Returns `null` when `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is unset
-- [ ] Gate check passes: `npm run test:unit`
-- [ ] Test count: 4 new test cases minimum
+- [x] Returns `null` (never throws) when `PushManager`/`Notification`/`serviceWorker` is unsupported (mocked absent in test)
+- [x] Returns `null` when permission is denied (mocked `"denied"`)
+- [x] Returns a `PushSubscriptionRecord`-shaped object on the granted/success path (mocked `pushManager.subscribe`)
+- [x] Returns `null` when `NEXT_PUBLIC_VAPID_PUBLIC_KEY` is unset
+- [x] Gate check passes: `npm run test:unit`
+- [x] Test count: 4 new test cases minimum
 
 **Tests**: unit
 **Gate**: quick
