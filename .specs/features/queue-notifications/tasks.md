@@ -774,11 +774,11 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] Renders the queue-full message and opt-in control on mount with no existing registration
-- [ ] After a successful opt-in, renders the "you'll be notified" state and persists the registration via `lib/waitlist-identity.ts`
-- [ ] Cancel calls `waitlist/leave` and returns to the opt-in state
-- [ ] No TypeScript errors: `npm run typecheck`
-- [ ] Manually verified in a running `next dev` session: fill the queue to 100 (or lower `MAX_QUEUE_SEATS` locally for the manual check), confirm the screen appears, opt in, free a seat, confirm the focused-tab chime/vibration fires via the SW `message` event
+- [x] Renders the queue-full message and opt-in control on mount with no existing registration
+- [x] After a successful opt-in, renders the "you'll be notified" state and persists the registration via `lib/waitlist-identity.ts`
+- [x] Cancel calls `waitlist/leave` and returns to the opt-in state
+- [x] No TypeScript errors: `npm run typecheck`
+- [ ] Manually verified in a running `next dev` session: fill the queue to 100 (or lower `MAX_QUEUE_SEATS` locally for the manual check), confirm the screen appears, opt in, free a seat, confirm the focused-tab chime/vibration fires via the SW `message` event -- NOT performed by this batch worker (no browser available)
 
 **Tests**: none
 **Gate**: quick
