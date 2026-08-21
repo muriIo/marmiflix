@@ -746,11 +746,11 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] Round-trips `{id, token}` through `localStorage` correctly
-- [ ] Returns `null` on missing/corrupt/malformed stored data (never throws)
-- [ ] `clearWaitlistIdentity()` removes the key
-- [ ] Gate check passes: `npm run test:unit`
-- [ ] Test count: matches `identity.test.ts`'s existing case count for the equivalent behaviors (minimum 5)
+- [x] Round-trips `{id, token}` through `localStorage` correctly
+- [x] Returns `null` on missing/corrupt/malformed stored data (never throws)
+- [x] `clearWaitlistIdentity()` removes the key
+- [x] Gate check passes: `npm run test:unit`
+- [x] Test count: matches `identity.test.ts`'s existing case count for the equivalent behaviors (minimum 5)
 
 **Tests**: unit
 **Gate**: quick
