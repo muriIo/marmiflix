@@ -498,10 +498,10 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] Existing `leave.integration.test.ts` suite passes unmodified
-- [ ] A leave that drops the count from 100 to 99 results in `dispatchAll` receiving a `seat-opened` broadcast job addressed to the current waitlist
-- [ ] Gate check passes: `npm run test:integration`
-- [ ] Test count: existing suite + 1 new case minimum
+- [x] Existing `leave.integration.test.ts` suite passes unmodified
+- [x] A leave that drops the count from 100 to 99 results in `dispatchAll` receiving a `seat-opened` broadcast job addressed to the current waitlist
+- [x] Gate check passes: `npm run test:integration`
+- [x] Test count: existing suite + 1 new case minimum
 
 **Tests**: integration
 **Gate**: full
