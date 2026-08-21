@@ -802,12 +802,12 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] Checkbox is present, unchecked by default, and its label matches the copy agreed in `context.md`
-- [ ] Checking it and submitting calls `requestPushSubscription()` before/alongside the join call
-- [ ] Denying the permission prompt still completes the join successfully (subscription omitted)
-- [ ] A `QUEUE_FULL`-coded rejection swaps the rendered form for `QueueFull`, with no other error path affected (duplicate-name and validation errors still show the existing inline message)
-- [ ] No TypeScript errors: `npm run typecheck`
-- [ ] Manually verified in a running `next dev` session: join with the box unchecked (no permission prompt appears), join with it checked (prompt appears at submit time), and a full-queue join attempt (renders `QueueFull`)
+- [x] Checkbox is present, unchecked by default, and its label matches the copy agreed in `context.md`
+- [x] Checking it and submitting calls `requestPushSubscription()` before/alongside the join call
+- [x] Denying the permission prompt still completes the join successfully (subscription omitted)
+- [x] A `QUEUE_FULL`-coded rejection swaps the rendered form for `QueueFull`, with no other error path affected (duplicate-name and validation errors still show the existing inline message)
+- [x] No TypeScript errors: `npm run typecheck`
+- [ ] Manually verified in a running `next dev` session: join with the box unchecked (no permission prompt appears), join with it checked (prompt appears at submit time), and a full-queue join attempt (renders `QueueFull`) -- NOT performed by this batch worker (no browser available); `npm run build` was run instead as a static/type sanity check and succeeded
 
 **Tests**: none
 **Gate**: quick
