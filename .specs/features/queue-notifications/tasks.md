@@ -1017,9 +1017,9 @@ T32
 
 **Done when**:
 
-- [ ] Two concurrent joins fired at exactly 99 seats result in exactly one success and one `QueueFullError`, with the final count equal to 100 (never 101)
-- [ ] Gate check passes: `npm run test:integration`
-- [ ] Test count: existing suite + 1 new case minimum
+- [x] Two concurrent joins fired at exactly 99 seats result in exactly one success and one `QueueFullError`, with the final count equal to 100 (never 101)
+- [x] Gate check passes: `npm run test:integration`
+- [x] Test count: existing suite + 1 new case minimum
 
 **Tests**: integration
 **Gate**: full

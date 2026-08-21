@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyConfirmTurn, applyFinishHeating, applyJoin, applyLeave } from "../engine";
 import { redis } from "../redis-client";
 import { QUEUE_STATE_KEY, getState, storeInternals, withQueueMutation } from "../store";
-import { QueueBusyError, type PushSubscriptionRecord, type QueueState } from "../types";
+import { QueueBusyError, QueueFullError, type PushSubscriptionRecord, type QueueState } from "../types";
 
 beforeEach(async () => {
   await redis.del(QUEUE_STATE_KEY);
@@ -40,6 +40,58 @@ describe("withQueueMutation", () => {
     const names = [activeName, waitingName].sort();
     expect(names).toEqual(["Ana", "Bruno"]);
     expect(finalState.waiting[0].id).not.toBe(finalState.active!.id);
+  });
+
+  it("allows exactly one of two concurrent joins to succeed at the 99/100 seat-cap boundary, holding the final count at 100 (NOTIF-18)", async () => {
+    const now = Date.now();
+    const waiting = Array.from({ length: 99 }, (_, i) => ({
+      id: `w${i}`,
+      name: `Visitor${i}`,
+      sessionTokenHash: `hash-w${i}`,
+      joinedAt: now - i,
+    }));
+    const seeded: QueueState = {
+      version: 1,
+      active: null,
+      waiting,
+      seatWaitlist: [],
+    };
+    await redis.set(QUEUE_STATE_KEY, seeded);
+
+    const joinCarla = () =>
+      withQueueMutation((state, mutateNow) => {
+        const next = applyJoin(
+          state,
+          { id: "carla-id", name: "Carla", sessionTokenHash: "carla-hash" },
+          mutateNow,
+        );
+        return { next, result: next };
+      });
+    const joinDiego = () =>
+      withQueueMutation((state, mutateNow) => {
+        const next = applyJoin(
+          state,
+          { id: "diego-id", name: "Diego", sessionTokenHash: "diego-hash" },
+          mutateNow,
+        );
+        return { next, result: next };
+      });
+
+    const results = await Promise.allSettled([joinCarla(), joinDiego()]);
+
+    const fulfilled = results.filter(
+      (settled): settled is PromiseFulfilledResult<Awaited<ReturnType<typeof joinCarla>>> =>
+        settled.status === "fulfilled",
+    );
+    const rejected = results.filter(
+      (settled): settled is PromiseRejectedResult => settled.status === "rejected",
+    );
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0].reason).toBeInstanceOf(QueueFullError);
+
+    const finalState = await getState();
+    expect((finalState.active ? 1 : 0) + finalState.waiting.length).toBe(100);
   });
 
   it("sees the reaped/promoted state, not the stale one, when the active turn's deadline already passed", async () => {
