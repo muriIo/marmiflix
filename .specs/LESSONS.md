@@ -26,6 +26,30 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: lib/queue/types.ts:76 (domain-errors)
 - last seen: 2026-08-18T20:04:54Z
 
+### L-003 - When one module produces a payload another module discriminates on, assert the discriminating field's presence and value in the producer's test, not just the fields it happens to render
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `notifications` · harmful: 0
+- features: queue-notifications
+- evidence: NOTIF-23; lib/notifications/dispatcher.ts:57 vs components/queue/QueueFull.tsx:40 (notifications)
+- last seen: 2026-08-21T18:26:08Z
+
+### L-004 - Every acceptance criterion ID listed on a task must be covered by that task's Done-when criteria, not merely name-dropped in its Requirement line
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `tasks` · harmful: 0
+- features: queue-notifications
+- evidence: NOTIF-25; app/api/queue/join/route.ts:67; tasks.md T23 Requirement line (tasks)
+- last seen: 2026-08-21T18:26:08Z
+
+### L-005 - For a criterion phrased as a state transition, test both that it fires on the transition and that it does not fire when the precondition holds but the transition does not occur
+- signal: `surviving_mutant` · recurrence: 1 feature(s) · scope: `queue` · harmful: 0
+- features: queue-notifications
+- evidence: Sensor mutation 3; lib/queue/store.ts:107 (queue)
+- last seen: 2026-08-21T18:26:08Z
+
+### L-006 - A cleanup or side-effect callback introduced as an optional parameter needs a task that wires it at every call site, or it ships as dead code
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `notifications` · harmful: 0
+- features: queue-notifications
+- evidence: spec.md Edge Case 410/404; lib/notifications/dispatcher.ts:89; app/api/queue/route.ts:20 (notifications)
+- last seen: 2026-08-21T18:26:08Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
