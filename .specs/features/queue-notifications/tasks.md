@@ -584,11 +584,11 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] A valid `id`/`token` pair (from a prior `waitlist/join` call) removes that entry and returns `200 { ok: true }`
-- [ ] An unknown `id` returns `404`
-- [ ] A mismatched `token` returns `403` and does NOT remove the entry
-- [ ] Gate check passes: `npm run test:integration`
-- [ ] Test count: 4 new integration test cases minimum
+- [x] A valid `id`/`token` pair (from a prior `waitlist/join` call) removes that entry and returns `200 { ok: true }`
+- [x] An unknown `id` returns `404`
+- [x] A mismatched `token` returns `403` and does NOT remove the entry
+- [x] Gate check passes: `npm run test:integration`
+- [x] Test count: 4 new integration test cases minimum
 
 **Tests**: integration
 **Gate**: full
