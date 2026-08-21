@@ -297,10 +297,10 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] All four scenarios return a non-empty `title` and `body`
-- [ ] Calling with each of the four `NotificationScenario` values is covered by a test
-- [ ] Gate check passes: `npm run test:unit`
-- [ ] Test count: 4 new test cases minimum
+- [x] All four scenarios return a non-empty `title` and `body`
+- [x] Calling with each of the four `NotificationScenario` values is covered by a test
+- [x] Gate check passes: `npm run test:unit`
+- [x] Test count: 4 new test cases minimum
 
 **Tests**: unit
 **Gate**: quick
