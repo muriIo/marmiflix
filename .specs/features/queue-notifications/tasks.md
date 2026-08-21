@@ -555,12 +555,12 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] A valid `subscription` registers a waitlist entry and returns `200 { id, token }`
-- [ ] A malformed `subscription` shape returns `400`
-- [ ] Registering twice with two different subscriptions creates two distinct entries (no dedup required - each is independently cancellable)
-- [ ] Rate limiting matches the existing per-route pattern
-- [ ] Gate check passes: `npm run test:integration`
-- [ ] Test count: 4 new integration test cases minimum
+- [x] A valid `subscription` registers a waitlist entry and returns `200 { id, token }`
+- [x] A malformed `subscription` shape returns `400`
+- [x] Registering twice with two different subscriptions creates two distinct entries (no dedup required - each is independently cancellable)
+- [x] Rate limiting matches the existing per-route pattern
+- [x] Gate check passes: `npm run test:integration`
+- [x] Test count: 4 new integration test cases minimum
 
 **Tests**: integration
 **Gate**: full
