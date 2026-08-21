@@ -228,3 +228,72 @@ export function applyHeatingCheckpoints(
     fired,
   };
 }
+
+export function applyAttachPushSubscription(
+  state: QueueState,
+  input: IdentifiedInput & { subscription: PushSubscriptionRecord },
+): QueueState {
+  if (state.active?.id === input.id) {
+    if (state.active.sessionTokenHash !== input.sessionTokenHash) {
+      throw new ForbiddenError(input.id);
+    }
+
+    return {
+      ...state,
+      active: { ...state.active, pushSubscription: input.subscription },
+    };
+  }
+
+  const target = state.waiting.find((entry) => entry.id === input.id);
+
+  if (!target) {
+    throw new NotFoundError(input.id);
+  }
+
+  if (target.sessionTokenHash !== input.sessionTokenHash) {
+    throw new ForbiddenError(input.id);
+  }
+
+  return {
+    ...state,
+    waiting: state.waiting.map((entry) =>
+      entry.id === input.id ? { ...entry, pushSubscription: input.subscription } : entry,
+    ),
+  };
+}
+
+function withoutPushSubscription<T extends { pushSubscription?: PushSubscriptionRecord }>(
+  entry: T,
+): T {
+  const copy = { ...entry };
+  delete copy.pushSubscription;
+  return copy;
+}
+
+export function applyPruneSubscriptions(
+  state: QueueState,
+  invalidEndpoints: string[],
+): QueueState {
+  if (invalidEndpoints.length === 0) {
+    return state;
+  }
+
+  const invalid = new Set(invalidEndpoints);
+
+  const active =
+    state.active?.pushSubscription && invalid.has(state.active.pushSubscription.endpoint)
+      ? withoutPushSubscription(state.active)
+      : state.active;
+
+  const waiting = state.waiting.map((entry) =>
+    entry.pushSubscription && invalid.has(entry.pushSubscription.endpoint)
+      ? withoutPushSubscription(entry)
+      : entry,
+  );
+
+  const seatWaitlist = state.seatWaitlist.filter(
+    (entry) => !invalid.has(entry.subscription.endpoint),
+  );
+
+  return { ...state, active, waiting, seatWaitlist };
+}

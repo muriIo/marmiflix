@@ -218,10 +218,10 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] `applyAttachPushSubscription` attaches to the active entry when the id matches active, to the matching waiting entry otherwise, throws `NotFoundError` if neither matches, throws `ForbiddenError` on a hash mismatch
-- [ ] `applyPruneSubscriptions` removes a matching `pushSubscription` from active/waiting entries and a matching `seatWaitlist` entry, leaves everything else untouched
-- [ ] Gate check passes: `npm run test:unit`
-- [ ] Test count: 6 new test cases minimum
+- [x] `applyAttachPushSubscription` attaches to the active entry when the id matches active, to the matching waiting entry otherwise, throws `NotFoundError` if neither matches, throws `ForbiddenError` on a hash mismatch
+- [x] `applyPruneSubscriptions` removes a matching `pushSubscription` from active/waiting entries and a matching `seatWaitlist` entry, leaves everything else untouched
+- [x] Gate check passes: `npm run test:unit`
+- [x] Test count: 6 new test cases minimum
 
 **Tests**: unit
 **Gate**: quick

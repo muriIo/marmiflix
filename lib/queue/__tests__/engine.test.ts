@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyAttachPushSubscription,
   applyConfirmTurn,
   applyFinishHeating,
   applyHeatingCheckpoints,
   applyJoin,
   applyLeave,
+  applyPruneSubscriptions,
   reapExpired,
 } from "../engine";
 import {
@@ -24,6 +26,13 @@ const HEATING_WINDOW_MS = 330_000;
 
 function emptyState(): QueueState {
   return { version: 1, active: null, waiting: [], seatWaitlist: [] };
+}
+
+function subscription(suffix: string): PushSubscriptionRecord {
+  return {
+    endpoint: `https://push.example/${suffix}`,
+    keys: { p256dh: `p256dh-${suffix}`, auth: `auth-${suffix}` },
+  };
 }
 
 describe("reapExpired", () => {
@@ -678,5 +687,172 @@ describe("applyHeatingCheckpoints", () => {
       "heating-ended",
       "confirm-finish-ending",
     ]);
+  });
+});
+
+describe("applyAttachPushSubscription", () => {
+  function stateWithActiveAndWaiting(): QueueState {
+    return {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "heating",
+        phaseStartedAt: 1_000_000,
+        deadline: 1_330_000,
+      },
+      waiting: [{ id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: 999_500 }],
+      seatWaitlist: [],
+    };
+  }
+
+  it("attaches the subscription to the active entry when the id matches active (NOTIF-03)", () => {
+    const state = stateWithActiveAndWaiting();
+    const sub = subscription("active");
+    const result = applyAttachPushSubscription(state, {
+      id: "a1",
+      sessionTokenHash: "hash-a1",
+      subscription: sub,
+    });
+
+    expect(result.active?.pushSubscription).toEqual(sub);
+    expect(result.waiting[0].pushSubscription).toBeUndefined();
+  });
+
+  it("attaches the subscription to the matching waiting entry when the id does not match active (NOTIF-03)", () => {
+    const state = stateWithActiveAndWaiting();
+    const sub = subscription("waiting");
+    const result = applyAttachPushSubscription(state, {
+      id: "b1",
+      sessionTokenHash: "hash-b1",
+      subscription: sub,
+    });
+
+    expect(result.waiting[0].pushSubscription).toEqual(sub);
+    expect(result.active?.pushSubscription).toBeUndefined();
+  });
+
+  it("throws NotFoundError when the id matches neither the active entry nor any waiting entry", () => {
+    const state = stateWithActiveAndWaiting();
+    expect(() =>
+      applyAttachPushSubscription(state, {
+        id: "ghost",
+        sessionTokenHash: "whatever",
+        subscription: subscription("ghost"),
+      }),
+    ).toThrow(NotFoundError);
+  });
+
+  it("throws ForbiddenError when the id matches the active entry but the token hash doesn't", () => {
+    const state = stateWithActiveAndWaiting();
+    expect(() =>
+      applyAttachPushSubscription(state, {
+        id: "a1",
+        sessionTokenHash: "wrong-hash",
+        subscription: subscription("active"),
+      }),
+    ).toThrow(ForbiddenError);
+  });
+
+  it("throws ForbiddenError when the id matches a waiting entry but the token hash doesn't", () => {
+    const state = stateWithActiveAndWaiting();
+    expect(() =>
+      applyAttachPushSubscription(state, {
+        id: "b1",
+        sessionTokenHash: "wrong-hash",
+        subscription: subscription("waiting"),
+      }),
+    ).toThrow(ForbiddenError);
+  });
+
+  it("does not mutate the input state object", () => {
+    const state = stateWithActiveAndWaiting();
+    const snapshot = structuredClone(state);
+    applyAttachPushSubscription(state, {
+      id: "a1",
+      sessionTokenHash: "hash-a1",
+      subscription: subscription("active"),
+    });
+    expect(state).toEqual(snapshot);
+  });
+});
+
+describe("applyPruneSubscriptions", () => {
+  function stateWithSubscriptions(): QueueState {
+    return {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "heating",
+        phaseStartedAt: 1_000_000,
+        deadline: 1_330_000,
+        pushSubscription: subscription("active"),
+      },
+      waiting: [
+        {
+          id: "b1",
+          name: "Bruno",
+          sessionTokenHash: "hash-b1",
+          joinedAt: 999_500,
+          pushSubscription: subscription("waiting"),
+        },
+        { id: "c1", name: "Carla", sessionTokenHash: "hash-c1", joinedAt: 999_900 },
+      ],
+      seatWaitlist: [
+        {
+          id: "w1",
+          tokenHash: "hash-w1",
+          subscription: subscription("waitlist"),
+          registeredAt: 999_000,
+        },
+      ],
+    };
+  }
+
+  it("strips a matching pushSubscription from the active entry, leaving the rest of the entry untouched", () => {
+    const state = stateWithSubscriptions();
+    const result = applyPruneSubscriptions(state, [subscription("active").endpoint]);
+
+    expect(result.active?.pushSubscription).toBeUndefined();
+    expect(result.active).toMatchObject({ id: "a1", name: "Ana", phase: "heating" });
+  });
+
+  it("strips a matching pushSubscription from a waiting entry, leaving the rest of the entry untouched", () => {
+    const state = stateWithSubscriptions();
+    const result = applyPruneSubscriptions(state, [subscription("waiting").endpoint]);
+
+    expect(result.waiting[0].pushSubscription).toBeUndefined();
+    expect(result.waiting[0]).toMatchObject({ id: "b1", name: "Bruno" });
+  });
+
+  it("removes a matching seatWaitlist entry entirely", () => {
+    const state = stateWithSubscriptions();
+    const result = applyPruneSubscriptions(state, [subscription("waitlist").endpoint]);
+
+    expect(result.seatWaitlist).toEqual([]);
+  });
+
+  it("leaves everything else untouched when an invalid endpoint matches nothing in state", () => {
+    const state = stateWithSubscriptions();
+    const result = applyPruneSubscriptions(state, ["https://push.example/unrelated"]);
+
+    expect(result).toEqual(state);
+  });
+
+  it("returns the same state reference when invalidEndpoints is empty", () => {
+    const state = stateWithSubscriptions();
+    const result = applyPruneSubscriptions(state, []);
+
+    expect(result).toBe(state);
+  });
+
+  it("does not mutate the input state object", () => {
+    const state = stateWithSubscriptions();
+    const snapshot = structuredClone(state);
+    applyPruneSubscriptions(state, [subscription("active").endpoint]);
+    expect(state).toEqual(snapshot);
   });
 });
