@@ -612,8 +612,8 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] All four env vars are documented with a comment explaining their purpose and how to generate them (`npx web-push generate-vapid-keys`)
-- [ ] No real key material is committed - placeholders only
+- [x] All four env vars are documented with a comment explaining their purpose and how to generate them (`npx web-push generate-vapid-keys`)
+- [x] No real key material is committed - placeholders only
 
 **Tests**: none
 **Gate**: build
