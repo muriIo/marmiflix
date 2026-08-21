@@ -415,13 +415,13 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] A join at 100/100 returns `409` with `code: "QUEUE_FULL"` (distinct from the existing duplicate-name `409`, which has no `code` field)
-- [ ] A join with a well-formed `subscription` field stores it (verified indirectly via a follow-up `push-subscribe`-shaped assertion or a direct state read in the test)
-- [ ] A join with a malformed or missing `subscription` field succeeds exactly as before (no subscription attached, no error)
-- [ ] A join into an empty queue with a subscription results in `after()`/`dispatchAll` NOT being called (no one else to notify - the joiner IS the new active entry, not a job target)
-- [ ] Existing `join.integration.test.ts` suite still passes unmodified in its existing assertions
-- [ ] Gate check passes: `npm run test:integration`
-- [ ] Test count: existing suite + 4 new cases minimum
+- [x] A join at 100/100 returns `409` with `code: "QUEUE_FULL"` (distinct from the existing duplicate-name `409`, which has no `code` field)
+- [x] A join with a well-formed `subscription` field stores it (verified indirectly via a follow-up `push-subscribe`-shaped assertion or a direct state read in the test)
+- [x] A join with a malformed or missing `subscription` field succeeds exactly as before (no subscription attached, no error)
+- [x] A join into an empty queue with a subscription results in `after()`/`dispatchAll` NOT being called (no one else to notify - the joiner IS the new active entry, not a job target)
+- [x] Existing `join.integration.test.ts` suite still passes unmodified in its existing assertions
+- [x] Gate check passes: `npm run test:integration`
+- [x] Test count: existing suite + 4 new cases minimum
 
 **Tests**: integration
 **Gate**: full
