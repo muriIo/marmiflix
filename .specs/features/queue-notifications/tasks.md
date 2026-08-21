@@ -936,9 +936,9 @@ T32
 
 **Done when**:
 
-- [ ] A join performed while a stored waitlist registration exists forwards its credentials and clears local storage on success
-- [ ] A join performed with no stored registration behaves exactly as before
-- [ ] No TypeScript errors: `npm run typecheck`
+- [x] A join performed while a stored waitlist registration exists forwards its credentials and clears local storage on success
+- [x] A join performed with no stored registration behaves exactly as before
+- [x] No TypeScript errors: `npm run typecheck`
 
 **Tests**: none
 **Gate**: quick

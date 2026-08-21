@@ -40,7 +40,11 @@ function backoffDelayForFailureCount(failures: number): number {
 }
 
 export interface UseQueueActions {
-  join: (name: string, subscription?: PushSubscriptionRecord) => Promise<void>;
+  join: (
+    name: string,
+    subscription?: PushSubscriptionRecord,
+    waitlistCredentials?: { id: string; token: string },
+  ) => Promise<void>;
   leave: () => Promise<void>;
   confirmTurn: () => Promise<void>;
   finish: () => Promise<void>;
@@ -183,11 +187,26 @@ export function useQueue(): UseQueueResult {
 
   const now = useCallback(() => Date.now() + offsetRef.current, []);
 
+  // SPEC_DEVIATION: T29's "Where" names only components/queue/Landing.tsx,
+  // but its own "What" names extending queue.actions.join as the mechanism
+  // for forwarding a stored waitlist registration on join (NOTIF-25). The
+  // alternative - Landing.tsx issuing its own fetch to /api/queue/join -
+  // would silently bypass this hook's noteSuccess/noteTransportFailure
+  // connection-health bookkeeping, a real regression. This is the minimal,
+  // backward-compatible (optional third param) extension.
   const join = useCallback(
-    async (name: string, subscription?: PushSubscriptionRecord) => {
+    async (
+      name: string,
+      subscription?: PushSubscriptionRecord,
+      waitlistCredentials?: { id: string; token: string },
+    ) => {
       const body: Record<string, unknown> = { name };
       if (subscription) {
         body.subscription = subscription;
+      }
+      if (waitlistCredentials) {
+        body.waitlistId = waitlistCredentials.id;
+        body.waitlistToken = waitlistCredentials.token;
       }
       const data = await callQueueApi("/api/queue/join", body);
       setIdentity({

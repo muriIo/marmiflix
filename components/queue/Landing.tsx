@@ -4,6 +4,7 @@ import { type FormEvent, useState } from "react";
 import { formatDuration } from "../../lib/format";
 import { QueueActionError, type UseQueueResult } from "../../hooks/useQueue";
 import { requestPushSubscription } from "../../lib/notifications/client";
+import { clearWaitlistIdentity, getWaitlistIdentity } from "../../lib/waitlist-identity";
 import { QueueFull } from "./QueueFull";
 
 export function Landing({ queue }: { queue: UseQueueResult }) {
@@ -30,7 +31,15 @@ export function Landing({ queue }: { queue: UseQueueResult }) {
     setSubmitting(true);
     try {
       const subscription = notifyOptIn ? await requestPushSubscription() : null;
-      await queue.actions.join(trimmedName, subscription ?? undefined);
+      const waitlistIdentity = getWaitlistIdentity();
+      await queue.actions.join(
+        trimmedName,
+        subscription ?? undefined,
+        waitlistIdentity ?? undefined,
+      );
+      if (waitlistIdentity) {
+        clearWaitlistIdentity();
+      }
     } catch (err) {
       if (err instanceof QueueActionError && err.code === "QUEUE_FULL") {
         setQueueFull(true);
