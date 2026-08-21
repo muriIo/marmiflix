@@ -386,12 +386,12 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] `GET` still returns the same `QueueView` JSON shape as before, unchanged status/body for the caller
-- [ ] `after()` is called only when `notificationJobs` is non-empty
-- [ ] Existing `queue-get.integration.test.ts` suite still passes unmodified in its assertions on the response body
-- [ ] A new test asserts that a poll crossing a heating checkpoint results in `dispatchAll` being invoked (mock/spy on the module) with the expected job
-- [ ] Gate check passes: `npm run test:integration`
-- [ ] Test count: existing suite + 1 new case minimum
+- [x] `GET` still returns the same `QueueView` JSON shape as before, unchanged status/body for the caller
+- [x] `after()` is called only when `notificationJobs` is non-empty
+- [x] Existing `queue-get.integration.test.ts` suite still passes unmodified in its assertions on the response body
+- [x] A new test asserts that a poll crossing a heating checkpoint results in `dispatchAll` being invoked (mock/spy on the module) with the expected job
+- [x] Gate check passes: `npm run test:integration`
+- [x] Test count: existing suite + 1 new case minimum
 
 **Tests**: integration
 **Gate**: full
