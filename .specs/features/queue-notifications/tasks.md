@@ -661,9 +661,9 @@ T21 -> T25
 
 **Done when**:
 
-- [ ] File is valid JavaScript (no syntax errors - verified by loading it in a browser's Application → Service Workers panel during manual verification)
-- [ ] Manually verified in a running `next dev` session (with a locally-sent test push, e.g. via a scratch script using `web-push`): focused tab → no OS notification appears, `message` event fires on the page; unfocused/backgrounded tab → OS notification appears
-- [ ] Manually verified that clicking the OS notification focuses/opens the app
+- [x] File is valid JavaScript (no syntax errors - verified via `node --check public/sw.js`; full browser Application → Service Workers panel verification NOT performed - no browser in this sandboxed environment)
+- [ ] Manually verified in a running `next dev` session (with a locally-sent test push, e.g. via a scratch script using `web-push`): focused tab → no OS notification appears, `message` event fires on the page; unfocused/backgrounded tab → OS notification appears -- NOT performed by this batch worker (no browser available)
+- [ ] Manually verified that clicking the OS notification focuses/opens the app -- NOT performed by this batch worker (no browser available)
 
 **Tests**: none
 **Gate**: build
