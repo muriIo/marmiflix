@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { dispatchAll } from "../../../../lib/notifications/dispatcher";
 import { applyFinishHeating } from "../../../../lib/queue/engine";
 import { checkRateLimit } from "../../../../lib/queue/rate-limit";
 import { authorizeEntry } from "../../../../lib/queue/route-helpers";
@@ -28,15 +30,16 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error }, { status: auth.status });
   }
 
+  let notificationJobs;
   try {
-    await withQueueMutation((state, now) => {
+    ({ notificationJobs } = await withQueueMutation((state, now) => {
       const next = applyFinishHeating(
         state,
         { id, sessionTokenHash: auth.entry.sessionTokenHash },
         now,
       );
       return { next, result: next };
-    });
+    }));
   } catch (error) {
     if (error instanceof NotFoundError) {
       return Response.json({ error: error.message }, { status: 404 });
@@ -48,6 +51,10 @@ export async function POST(request: Request): Promise<Response> {
       return Response.json({ error: error.message }, { status: 409 });
     }
     throw error;
+  }
+
+  if (notificationJobs.length > 0) {
+    after(() => dispatchAll(notificationJobs));
   }
 
   return Response.json({ ok: true }, { status: 200 });

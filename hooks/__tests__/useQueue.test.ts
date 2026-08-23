@@ -143,8 +143,8 @@ describe("useQueue polling core (QUEUE-18)", () => {
   });
 });
 
-function jsonError(status: number, message: string): Response {
-  return new Response(JSON.stringify({ error: message }), {
+function jsonError(status: number, message: string, code?: string): Response {
+  return new Response(JSON.stringify(code ? { error: message, code } : { error: message }), {
     status,
     headers: { "content-type": "application/json" },
   });
@@ -329,6 +329,80 @@ describe("useQueue actions (QUEUE-02/03/06/10/14)", () => {
     expect(caught).toBeInstanceOf(TypeError);
     expect(caught).not.toBeInstanceOf(QueueActionError);
     expect(getIdentity()).toEqual({ id: "visitor-1", name: "Ana", sessionToken: "tok-1" });
+  });
+});
+
+describe("useQueue join subscription and error codes (NOTIF-19, NOTIF-20, NOTIF-27)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    setDocumentHidden(false);
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("a 409 with {error, code: 'QUEUE_FULL'} produces a QueueActionError with .code === 'QUEUE_FULL'", async () => {
+    const fetchMock = createFetchMock({
+      join: () => jsonError(409, "A fila está cheia no momento", "QUEUE_FULL"),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = await renderAndFlush();
+
+    const error = await captureError(() => result.current.actions.join("Ana"));
+
+    expect(error).toBeInstanceOf(QueueActionError);
+    expect((error as QueueActionError).code).toBe("QUEUE_FULL");
+  });
+
+  it("a 409 with no code field produces a QueueActionError with .code === undefined (duplicate-name unaffected)", async () => {
+    const fetchMock = createFetchMock({
+      join: () => jsonError(409, 'Esse nome já está na fila: "Ana"'),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = await renderAndFlush();
+
+    const error = await captureError(() => result.current.actions.join("Ana"));
+
+    expect(error).toBeInstanceOf(QueueActionError);
+    expect((error as QueueActionError).code).toBeUndefined();
+  });
+
+  it("join(name) with no subscription sends a body without a subscription field", async () => {
+    const fetchMock = createFetchMock();
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = await renderAndFlush();
+
+    await act(async () => {
+      await result.current.actions.join("Ana");
+    });
+
+    const joinCall = fetchMock.mock.calls.find(([url]) => url.toString().endsWith("/join"));
+    expect(joinCall).toBeDefined();
+    const [, init] = joinCall as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({ name: "Ana" });
+  });
+
+  it("join(name, subscription) sends a body including the subscription", async () => {
+    const fetchMock = createFetchMock();
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = await renderAndFlush();
+    const subscription = {
+      endpoint: "https://push.example/abc123",
+      keys: { p256dh: "p256dh-key", auth: "auth-key" },
+    };
+
+    await act(async () => {
+      await result.current.actions.join("Ana", subscription);
+    });
+
+    const joinCall = fetchMock.mock.calls.find(([url]) => url.toString().endsWith("/join"));
+    expect(joinCall).toBeDefined();
+    const [, init] = joinCall as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({ name: "Ana", subscription });
   });
 });
 

@@ -1,8 +1,19 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { redis } from "../../../../lib/queue/redis-client";
+import { hashToken } from "../../../../lib/queue/session";
 import { QUEUE_STATE_KEY } from "../../../../lib/queue/store";
+import type { PushSubscriptionRecord, QueueState } from "../../../../lib/queue/types";
 import { POST as join } from "../join/route";
 import { POST as leave } from "../leave/route";
+
+vi.mock("next/server", () => ({
+  after: (fn: () => unknown) => fn(),
+}));
+vi.mock("../../../../lib/notifications/dispatcher", () => ({
+  dispatchAll: vi.fn(),
+}));
+
+const { dispatchAll } = await import("../../../../lib/notifications/dispatcher");
 
 function joinRequest(name: string, ip: string): Request {
   return new Request("http://localhost/api/queue/join", {
@@ -30,6 +41,7 @@ beforeEach(async () => {
     ),
   );
   await Promise.all(RATE_LIMIT_IDS.map((id) => redis.del(`ratelimit:leave:${id}`)));
+  vi.mocked(dispatchAll).mockClear();
 });
 
 describe("POST /api/queue/leave", () => {
@@ -81,5 +93,46 @@ describe("POST /api/queue/leave", () => {
     }
 
     expect(lastResponse!.status).toBe(429);
+  });
+
+  it("dispatches a seat-opened broadcast job to the current waitlist when leave drops the count from 100 to 99 (NOTIF-22)", async () => {
+    const now = Date.now();
+    const leaverToken = "leaver-token";
+    const waiting = [
+      { id: "w0", name: "Visitor0", sessionTokenHash: hashToken(leaverToken), joinedAt: now },
+      ...Array.from({ length: 98 }, (_, i) => ({
+        id: `w${i + 1}`,
+        name: `Visitor${i + 1}`,
+        sessionTokenHash: `hash-w${i + 1}`,
+        joinedAt: now - i,
+      })),
+    ];
+    const waitlistSub: PushSubscriptionRecord = {
+      endpoint: "https://push.example/leave-waitlist",
+      keys: { p256dh: "p", auth: "a" },
+    };
+    const seeded: QueueState = {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "heating",
+        phaseStartedAt: now - 1000,
+        deadline: now + 300_000,
+      },
+      waiting,
+      seatWaitlist: [
+        { id: "wl1", tokenHash: "hash-wl1", subscription: waitlistSub, registeredAt: now - 5000 },
+      ],
+    };
+    await redis.set(QUEUE_STATE_KEY, seeded);
+
+    const response = await leave(leaveRequest("w0", leaverToken));
+
+    expect(response.status).toBe(200);
+    expect(dispatchAll).toHaveBeenCalledWith([
+      { scenario: "seat-opened", recipients: [waitlistSub] },
+    ]);
   });
 });

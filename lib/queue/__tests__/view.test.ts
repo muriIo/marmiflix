@@ -6,7 +6,7 @@ import type { QueueState } from "../types";
 const FIVE_MIN_MS = 5 * 60 * 1000;
 
 function emptyState(): QueueState {
-  return { version: 1, active: null, waiting: [] };
+  return { version: 1, active: null, waiting: [], seatWaitlist: [] };
 }
 
 describe("buildView - anonymous / landing (QUEUE-01)", () => {
@@ -29,6 +29,7 @@ describe("buildView - anonymous / landing (QUEUE-01)", () => {
         deadline: now + 120_000,
       },
       waiting: [],
+      seatWaitlist: [],
     };
     const view = buildView(state, null, now);
     expect(view.queueCount).toBe(1);
@@ -48,6 +49,7 @@ describe("buildView - anonymous / landing (QUEUE-01)", () => {
         deadline: now + 20_000,
       },
       waiting: [],
+      seatWaitlist: [],
     };
     const view = buildView(state, null, now);
     expect(view.queueCount).toBe(1);
@@ -67,6 +69,7 @@ describe("buildView - anonymous / landing (QUEUE-01)", () => {
         deadline: confirmDeadline,
       },
       waiting: [],
+      seatWaitlist: [],
     };
     const stateJustAfterConfirm: QueueState = {
       version: 1,
@@ -79,6 +82,7 @@ describe("buildView - anonymous / landing (QUEUE-01)", () => {
         deadline: confirmDeadline + HEATING_WINDOW_MS,
       },
       waiting: [],
+      seatWaitlist: [],
     };
 
     const before = buildView(stateJustBeforeConfirm, null, confirmDeadline);
@@ -103,6 +107,7 @@ describe("buildView - anonymous / landing (QUEUE-01)", () => {
         { id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: now - 500 },
         { id: "c1", name: "Carla", sessionTokenHash: "hash-c1", joinedAt: now - 100 },
       ],
+      seatWaitlist: [],
     };
     const view = buildView(state, null, now);
     expect(view.queueCount).toBe(3);
@@ -138,6 +143,7 @@ describe("buildView - waiting viewer (QUEUE-05, QUEUE-21)", () => {
         { id: "c1", name: "Carla", sessionTokenHash: "hash-c1", joinedAt: now - 400 },
         { id: "d1", name: "Duda", sessionTokenHash: "hash-d1", joinedAt: now - 300 },
       ],
+      seatWaitlist: [],
     };
   }
 
@@ -165,6 +171,7 @@ describe("buildView - waiting viewer (QUEUE-05, QUEUE-21)", () => {
         deadline: now + 20_000,
       },
       waiting: [{ id: "b1", name: "Bruno", sessionTokenHash: "hash-b1", joinedAt: now - 500 }],
+      seatWaitlist: [],
     };
     const view = buildView(state, "b1", now);
 
@@ -204,6 +211,7 @@ describe("buildView - active viewer", () => {
         deadline: now + 20_000,
       },
       waiting: [],
+      seatWaitlist: [],
     };
     const view = buildView(state, "a1", now);
 
@@ -228,6 +236,7 @@ describe("buildView - never-leak invariant", () => {
         { id: "b1-secret-id", name: "Bruno", sessionTokenHash: "hash-b1-secret", joinedAt: now - 500 },
         { id: "c1-secret-id", name: "Carla", sessionTokenHash: "hash-c1-secret", joinedAt: now - 400 },
       ],
+      seatWaitlist: [],
     };
 
     for (const viewerId of [null, "b1-secret-id", "c1-secret-id", "a1-secret-id"]) {

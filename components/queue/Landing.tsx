@@ -3,15 +3,24 @@
 import { type FormEvent, useState } from "react";
 import { formatDuration } from "../../lib/format";
 import { QueueActionError, type UseQueueResult } from "../../hooks/useQueue";
+import { requestPushSubscription } from "../../lib/notifications/client";
+import { clearWaitlistIdentity, getWaitlistIdentity } from "../../lib/waitlist-identity";
+import { QueueFull } from "./QueueFull";
 
 export function Landing({ queue }: { queue: UseQueueResult }) {
   const [name, setName] = useState("");
+  const [notifyOptIn, setNotifyOptIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [queueFull, setQueueFull] = useState(false);
 
   const view = queue.view;
   const isEmpty = (view?.queueCount ?? 0) === 0;
   const trimmedName = name.trim();
+
+  if (queueFull) {
+    return <QueueFull onLeaveWaitlist={() => setQueueFull(false)} />;
+  }
 
   async function handleJoin(event: FormEvent) {
     event.preventDefault();
@@ -21,8 +30,21 @@ export function Landing({ queue }: { queue: UseQueueResult }) {
     setError(null);
     setSubmitting(true);
     try {
-      await queue.actions.join(trimmedName);
+      const subscription = notifyOptIn ? await requestPushSubscription() : null;
+      const waitlistIdentity = getWaitlistIdentity();
+      await queue.actions.join(
+        trimmedName,
+        subscription ?? undefined,
+        waitlistIdentity ?? undefined,
+      );
+      if (waitlistIdentity) {
+        clearWaitlistIdentity();
+      }
     } catch (err) {
+      if (err instanceof QueueActionError && err.code === "QUEUE_FULL") {
+        setQueueFull(true);
+        return;
+      }
       setError(
         err instanceof QueueActionError
           ? err.message
@@ -72,6 +94,15 @@ export function Landing({ queue }: { queue: UseQueueResult }) {
           aria-label="Seu nome"
           className="w-full rounded-xl bg-char-900 border border-char-600 px-4 py-3 text-cream-100 placeholder:text-cream-500 focus:outline-none focus:ring-2 focus:ring-ember-500"
         />
+        <label className="flex items-center gap-2 text-sm text-cream-300">
+          <input
+            type="checkbox"
+            checked={notifyOptIn}
+            onChange={(event) => setNotifyOptIn(event.target.checked)}
+            className="h-4 w-4 rounded border-char-600 bg-char-900 accent-ember-500"
+          />
+          Avisar mesmo se eu fechar a aba
+        </label>
         {error && (
           <p role="alert" className="text-alarm-500 text-sm">
             {error}

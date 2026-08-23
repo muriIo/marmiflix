@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 3,
+  "next_id": 7,
   "lessons": [
     {
       "id": "L-001",
@@ -40,6 +40,78 @@
       ],
       "created": "2026-08-18T20:04:54Z",
       "last_seen": "2026-08-18T20:04:54Z"
+    },
+    {
+      "id": "L-003",
+      "key": "ac_gap::when one module produces a payload another module discriminates on assert the discriminating field s presence and value in the producer s test not just the fields it happens to render",
+      "text": "When one module produces a payload another module discriminates on, assert the discriminating field's presence and value in the producer's test, not just the fields it happens to render",
+      "signal": "ac_gap",
+      "scope": "notifications",
+      "status": "candidate",
+      "features": [
+        "queue-notifications"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "NOTIF-23; lib/notifications/dispatcher.ts:57 vs components/queue/QueueFull.tsx:40 (notifications)"
+      ],
+      "created": "2026-08-21T18:26:08Z",
+      "last_seen": "2026-08-21T18:26:08Z"
+    },
+    {
+      "id": "L-004",
+      "key": "ac_gap::every acceptance criterion id listed on a task must be covered by that task s done when criteria not merely name dropped in its requirement line",
+      "text": "Every acceptance criterion ID listed on a task must be covered by that task's Done-when criteria, not merely name-dropped in its Requirement line",
+      "signal": "ac_gap",
+      "scope": "tasks",
+      "status": "candidate",
+      "features": [
+        "queue-notifications"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "NOTIF-25; app/api/queue/join/route.ts:67; tasks.md T23 Requirement line (tasks)"
+      ],
+      "created": "2026-08-21T18:26:08Z",
+      "last_seen": "2026-08-21T18:26:08Z"
+    },
+    {
+      "id": "L-005",
+      "key": "surviving_mutant::for a criterion phrased as a state transition test both that it fires on the transition and that it does not fire when the precondition holds but the transition does not occur",
+      "text": "For a criterion phrased as a state transition, test both that it fires on the transition and that it does not fire when the precondition holds but the transition does not occur",
+      "signal": "surviving_mutant",
+      "scope": "queue",
+      "status": "candidate",
+      "features": [
+        "queue-notifications"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "Sensor mutation 3; lib/queue/store.ts:107 (queue)"
+      ],
+      "created": "2026-08-21T18:26:08Z",
+      "last_seen": "2026-08-21T18:26:08Z"
+    },
+    {
+      "id": "L-006",
+      "key": "spec_precision_gap::a cleanup or side effect callback introduced as an optional parameter needs a task that wires it at every call site or it ships as dead code",
+      "text": "A cleanup or side-effect callback introduced as an optional parameter needs a task that wires it at every call site, or it ships as dead code",
+      "signal": "spec_precision_gap",
+      "scope": "notifications",
+      "status": "candidate",
+      "features": [
+        "queue-notifications"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md Edge Case 410/404; lib/notifications/dispatcher.ts:89; app/api/queue/route.ts:20 (notifications)"
+      ],
+      "created": "2026-08-21T18:26:08Z",
+      "last_seen": "2026-08-21T18:26:08Z"
     }
   ]
 }

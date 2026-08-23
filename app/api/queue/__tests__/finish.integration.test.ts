@@ -1,15 +1,37 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { redis } from "../../../../lib/queue/redis-client";
 import { QUEUE_STATE_KEY, getState } from "../../../../lib/queue/store";
+import type { PushSubscriptionRecord } from "../../../../lib/queue/types";
 import { POST as confirmTurn } from "../confirm-turn/route";
 import { POST as finish } from "../finish/route";
 import { POST as join } from "../join/route";
+
+vi.mock("next/server", () => ({
+  after: (fn: () => unknown) => fn(),
+}));
+vi.mock("../../../../lib/notifications/dispatcher", () => ({
+  dispatchAll: vi.fn(),
+}));
+
+const { dispatchAll } = await import("../../../../lib/notifications/dispatcher");
 
 function joinRequest(name: string, ip: string): Request {
   return new Request("http://localhost/api/queue/join", {
     method: "POST",
     headers: { "content-type": "application/json", "x-forwarded-for": ip },
     body: JSON.stringify({ name }),
+  });
+}
+
+function subscribedJoinRequest(
+  name: string,
+  ip: string,
+  subscription: PushSubscriptionRecord,
+): Request {
+  return new Request("http://localhost/api/queue/join", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-forwarded-for": ip },
+    body: JSON.stringify({ name, subscription }),
   });
 }
 
@@ -28,6 +50,7 @@ beforeEach(async () => {
   await redis.del(QUEUE_STATE_KEY);
   await Promise.all(JOIN_IPS.map((ip) => redis.del(`ratelimit:join:${ip}`)));
   await Promise.all(RATE_LIMIT_IDS.map((id) => redis.del(`ratelimit:finish:${id}`)));
+  vi.mocked(dispatchAll).mockClear();
 });
 
 describe("POST /api/queue/finish", () => {
@@ -93,5 +116,26 @@ describe("POST /api/queue/finish", () => {
     }
 
     expect(lastResponse!.status).toBe(429);
+  });
+
+  it("dispatches a turn-ready job for the newly promoted entry when finish promotes the next waiting entry (NOTIF-01)", async () => {
+    const subscription: PushSubscriptionRecord = {
+      endpoint: "https://push.example/finish-promote",
+      keys: { p256dh: "p", auth: "a" },
+    };
+    const ana = await (await join(joinRequest("Ana", "10.30.0.6"))).json();
+    const bruno = await (
+      await join(subscribedJoinRequest("Bruno", "10.30.0.1", subscription))
+    ).json();
+    await confirmTurn(actionRequest("confirm-turn", ana.id, ana.sessionToken));
+
+    const response = await finish(actionRequest("finish", ana.id, ana.sessionToken));
+
+    expect(response.status).toBe(200);
+    const state = await getState();
+    expect(state.active?.id).toBe(bruno.id);
+    expect(dispatchAll).toHaveBeenCalledWith([
+      { scenario: "turn-ready", recipients: [subscription] },
+    ]);
   });
 });

@@ -1,9 +1,18 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { redis } from "../../../../lib/queue/redis-client";
 import { QUEUE_STATE_KEY } from "../../../../lib/queue/store";
-import type { QueueState } from "../../../../lib/queue/types";
+import type { PushSubscriptionRecord, QueueState } from "../../../../lib/queue/types";
 import { POST as join } from "../join/route";
 import { GET as getQueue } from "../route";
+
+vi.mock("next/server", () => ({
+  after: (fn: () => unknown) => fn(),
+}));
+vi.mock("../../../../lib/notifications/dispatcher", () => ({
+  dispatchAll: vi.fn(),
+}));
+
+const { dispatchAll } = await import("../../../../lib/notifications/dispatcher");
 
 function joinRequest(name: string, ip: string): Request {
   return new Request("http://localhost/api/queue/join", {
@@ -25,6 +34,7 @@ const JOIN_IPS = ["10.40.0.1", "10.40.0.2", "10.40.0.3"];
 beforeEach(async () => {
   await redis.del(QUEUE_STATE_KEY);
   await Promise.all(JOIN_IPS.map((ip) => redis.del(`ratelimit:join:${ip}`)));
+  vi.mocked(dispatchAll).mockClear();
 });
 
 describe("GET /api/queue", () => {
@@ -81,6 +91,7 @@ describe("GET /api/queue", () => {
         deadline: past,
       },
       waiting: [],
+      seatWaitlist: [],
     };
     await redis.set(QUEUE_STATE_KEY, expiredState);
 
@@ -89,5 +100,35 @@ describe("GET /api/queue", () => {
 
     expect(response.status).toBe(200);
     expect(body.queueCount).toBe(0);
+  });
+
+  it("dispatches a heating-ended notification job when a poll crosses the 5:00 elapsed mark (NOTIF-07)", async () => {
+    const subscription: PushSubscriptionRecord = {
+      endpoint: "https://push.example/heating-checkpoint",
+      keys: { p256dh: "p", auth: "a" },
+    };
+    const phaseStartedAt = Date.now() - 301_000; // just past the 5:00 mark, before 5:20
+    const seeded: QueueState = {
+      version: 1,
+      active: {
+        id: "a1",
+        name: "Ana",
+        sessionTokenHash: "hash-a1",
+        phase: "heating",
+        phaseStartedAt,
+        deadline: phaseStartedAt + 330_000,
+        pushSubscription: subscription,
+      },
+      waiting: [],
+      seatWaitlist: [],
+    };
+    await redis.set(QUEUE_STATE_KEY, seeded);
+
+    const response = await getQueue(getRequest());
+
+    expect(response.status).toBe(200);
+    expect(dispatchAll).toHaveBeenCalledWith([
+      { scenario: "heating-ended", recipients: [subscription] },
+    ]);
   });
 });

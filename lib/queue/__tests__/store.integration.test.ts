@@ -10,7 +10,7 @@ beforeEach(async () => {
 describe("getState", () => {
   it("returns a default empty state (version 0) when the key does not exist", async () => {
     const state = await getState();
-    expect(state).toEqual({ version: 0, active: null, waiting: [] });
+    expect(state).toEqual({ version: 0, active: null, waiting: [], seatWaitlist: [] });
   });
 });
 
@@ -21,6 +21,7 @@ describe("casWrite", () => {
       version: initial.version + 1,
       active: null,
       waiting: [{ id: "v1", name: "Ana", sessionTokenHash: "hash1", joinedAt: 1000 }],
+      seatWaitlist: [],
     };
 
     const won = await casWrite(QUEUE_STATE_KEY, initial.version, next);
@@ -36,6 +37,7 @@ describe("casWrite", () => {
       version: initial.version + 1,
       active: null,
       waiting: [{ id: "v1", name: "Ana", sessionTokenHash: "hash1", joinedAt: 1000 }],
+      seatWaitlist: [],
     };
     await casWrite(QUEUE_STATE_KEY, initial.version, firstWrite);
 
@@ -43,6 +45,7 @@ describe("casWrite", () => {
       version: initial.version + 1,
       active: null,
       waiting: [{ id: "v2", name: "Bruno", sessionTokenHash: "hash2", joinedAt: 2000 }],
+      seatWaitlist: [],
     };
     const won = await casWrite(QUEUE_STATE_KEY, initial.version, staleAttempt);
     expect(won).toBe(false);

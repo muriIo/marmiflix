@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clearIdentity, getIdentity, setIdentity } from "../lib/identity";
-import type { QueueView } from "../lib/queue/types";
+import type { PushSubscriptionRecord, QueueView } from "../lib/queue/types";
 
 const POLL_INTERVAL_MS = 2000;
 // Retry delay after the Nth consecutive transport failure (1-indexed), capped at the last entry.
@@ -19,6 +19,7 @@ export class QueueActionError extends Error {
   constructor(
     message: string,
     public readonly status: number,
+    public readonly code?: string,
   ) {
     super(message);
     this.name = "QueueActionError";
@@ -39,7 +40,11 @@ function backoffDelayForFailureCount(failures: number): number {
 }
 
 export interface UseQueueActions {
-  join: (name: string) => Promise<void>;
+  join: (
+    name: string,
+    subscription?: PushSubscriptionRecord,
+    waitlistCredentials?: { id: string; token: string },
+  ) => Promise<void>;
   leave: () => Promise<void>;
   confirmTurn: () => Promise<void>;
   finish: () => Promise<void>;
@@ -114,7 +119,8 @@ export function useQueue(): UseQueueResult {
       const data = await parseJsonBody(response);
       if (!response.ok) {
         const message = typeof data.error === "string" ? data.error : "Erro desconhecido";
-        throw new QueueActionError(message, response.status);
+        const code = typeof data.code === "string" ? data.code : undefined;
+        throw new QueueActionError(message, response.status, code);
       }
       noteSuccess();
       return data;
@@ -181,9 +187,28 @@ export function useQueue(): UseQueueResult {
 
   const now = useCallback(() => Date.now() + offsetRef.current, []);
 
+  // SPEC_DEVIATION: T29's "Where" names only components/queue/Landing.tsx,
+  // but its own "What" names extending queue.actions.join as the mechanism
+  // for forwarding a stored waitlist registration on join (NOTIF-25). The
+  // alternative - Landing.tsx issuing its own fetch to /api/queue/join -
+  // would silently bypass this hook's noteSuccess/noteTransportFailure
+  // connection-health bookkeeping, a real regression. This is the minimal,
+  // backward-compatible (optional third param) extension.
   const join = useCallback(
-    async (name: string) => {
-      const data = await callQueueApi("/api/queue/join", { name });
+    async (
+      name: string,
+      subscription?: PushSubscriptionRecord,
+      waitlistCredentials?: { id: string; token: string },
+    ) => {
+      const body: Record<string, unknown> = { name };
+      if (subscription) {
+        body.subscription = subscription;
+      }
+      if (waitlistCredentials) {
+        body.waitlistId = waitlistCredentials.id;
+        body.waitlistToken = waitlistCredentials.token;
+      }
+      const data = await callQueueApi("/api/queue/join", body);
       setIdentity({
         id: data.id as string,
         name,

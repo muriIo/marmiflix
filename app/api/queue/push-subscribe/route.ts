@@ -1,13 +1,30 @@
-import { after } from "next/server";
-import { dispatchAll } from "../../../../lib/notifications/dispatcher";
-import { applyConfirmTurn } from "../../../../lib/queue/engine";
+import { applyAttachPushSubscription } from "../../../../lib/queue/engine";
 import { checkRateLimit } from "../../../../lib/queue/rate-limit";
 import { authorizeEntry } from "../../../../lib/queue/route-helpers";
 import { withQueueMutation } from "../../../../lib/queue/store";
-import { ForbiddenError, NotFoundError, WrongPhaseError } from "../../../../lib/queue/types";
+import {
+  ForbiddenError,
+  NotFoundError,
+  type PushSubscriptionRecord,
+} from "../../../../lib/queue/types";
+
+function isValidSubscription(value: unknown): value is PushSubscriptionRecord {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  if (typeof record.endpoint !== "string") {
+    return false;
+  }
+  if (!record.keys || typeof record.keys !== "object") {
+    return false;
+  }
+  const keys = record.keys as Record<string, unknown>;
+  return typeof keys.p256dh === "string" && typeof keys.auth === "string";
+}
 
 export async function POST(request: Request): Promise<Response> {
-  let body: { id?: unknown; sessionToken?: unknown } = {};
+  let body: { id?: unknown; sessionToken?: unknown; subscription?: unknown } = {};
   try {
     body = await request.json();
   } catch {
@@ -16,7 +33,7 @@ export async function POST(request: Request): Promise<Response> {
   const id = typeof body.id === "string" ? body.id : "";
   const sessionToken = typeof body.sessionToken === "string" ? body.sessionToken : "";
 
-  const allowed = await checkRateLimit(`confirm-turn:${id || "unknown"}`);
+  const allowed = await checkRateLimit(`push-subscribe:${id || "unknown"}`);
   if (!allowed) {
     return Response.json(
       { error: "Muitas tentativas. Tente novamente em instantes." },
@@ -24,18 +41,26 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
+  if (!isValidSubscription(body.subscription)) {
+    return Response.json({ error: "Malformed subscription" }, { status: 400 });
+  }
+  const subscription = body.subscription;
+
   const auth = await authorizeEntry(id, sessionToken);
   if (!auth.ok) {
     const error = auth.status === 404 ? "Entrada não encontrada na fila" : "Sessão inválida";
     return Response.json({ error }, { status: auth.status });
   }
 
-  let notificationJobs;
   try {
-    ({ notificationJobs } = await withQueueMutation((state, now) => {
-      const next = applyConfirmTurn(state, { id, sessionTokenHash: auth.entry.sessionTokenHash }, now);
+    await withQueueMutation((state) => {
+      const next = applyAttachPushSubscription(state, {
+        id,
+        sessionTokenHash: auth.entry.sessionTokenHash,
+        subscription,
+      });
       return { next, result: next };
-    }));
+    });
   } catch (error) {
     if (error instanceof NotFoundError) {
       return Response.json({ error: error.message }, { status: 404 });
@@ -43,14 +68,7 @@ export async function POST(request: Request): Promise<Response> {
     if (error instanceof ForbiddenError) {
       return Response.json({ error: error.message }, { status: 403 });
     }
-    if (error instanceof WrongPhaseError) {
-      return Response.json({ error: error.message }, { status: 409 });
-    }
     throw error;
-  }
-
-  if (notificationJobs.length > 0) {
-    after(() => dispatchAll(notificationJobs));
   }
 
   return Response.json({ ok: true }, { status: 200 });
