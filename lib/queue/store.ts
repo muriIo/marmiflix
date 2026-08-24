@@ -125,6 +125,17 @@ export async function withQueueMutation<T>(
     const reaped = reapExpired(current, now);
     const { state: checkpointed, fired } = applyHeatingCheckpoints(reaped, now);
     const { next, result } = mutate(checkpointed, now);
+
+    // True no-op (e.g. a GET poll with nothing to reap and no mutation of its
+    // own): skip the CAS write entirely instead of bumping the version - and
+    // contending for the lock - on every idle poll. reapExpired/
+    // applyHeatingCheckpoints return the same reference when they don't
+    // change anything, so `next === current` here means nothing at all
+    // changed across the whole call.
+    if (next === current) {
+      return { result, notificationJobs: [] };
+    }
+
     const toWrite: QueueState = { ...next, version: checkpointed.version + 1 };
 
     const won = await storeInternals.casWrite(QUEUE_STATE_KEY, checkpointed.version, toWrite);

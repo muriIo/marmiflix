@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { checkRateLimit } from "../../../../../lib/queue/rate-limit";
+import { QueueBusyError, queueBusyResponse } from "../../../../../lib/queue/route-helpers";
 import { generateSessionToken, hashToken } from "../../../../../lib/queue/session";
 import { withQueueMutation } from "../../../../../lib/queue/store";
 import type { PushSubscriptionRecord } from "../../../../../lib/queue/types";
@@ -53,16 +54,23 @@ export async function POST(request: Request): Promise<Response> {
   const token = generateSessionToken();
   const tokenHash = hashToken(token);
 
-  await withQueueMutation((state, now) => {
-    const next = {
-      ...state,
-      seatWaitlist: [
-        ...state.seatWaitlist,
-        { id, tokenHash, subscription, registeredAt: now },
-      ],
-    };
-    return { next, result: next };
-  });
+  try {
+    await withQueueMutation((state, now) => {
+      const next = {
+        ...state,
+        seatWaitlist: [
+          ...state.seatWaitlist,
+          { id, tokenHash, subscription, registeredAt: now },
+        ],
+      };
+      return { next, result: next };
+    });
+  } catch (error) {
+    if (error instanceof QueueBusyError) {
+      return queueBusyResponse();
+    }
+    throw error;
+  }
 
   return Response.json({ id, token }, { status: 200 });
 }

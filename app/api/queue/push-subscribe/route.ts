@@ -1,6 +1,6 @@
 import { applyAttachPushSubscription } from "../../../../lib/queue/engine";
 import { checkRateLimit } from "../../../../lib/queue/rate-limit";
-import { authorizeEntry } from "../../../../lib/queue/route-helpers";
+import { authorizeEntry, QueueBusyError, queueBusyResponse } from "../../../../lib/queue/route-helpers";
 import { withQueueMutation } from "../../../../lib/queue/store";
 import {
   ForbiddenError,
@@ -67,6 +67,9 @@ export async function POST(request: Request): Promise<Response> {
     }
     if (error instanceof ForbiddenError) {
       return Response.json({ error: error.message }, { status: 403 });
+    }
+    if (error instanceof QueueBusyError) {
+      return queueBusyResponse();
     }
     throw error;
   }

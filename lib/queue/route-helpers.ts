@@ -1,6 +1,6 @@
 import { verifyToken } from "./session";
 import { getState } from "./store";
-import type { QueueState } from "./types";
+import { QueueBusyError, type QueueState } from "./types";
 
 export interface EntryLookup {
   id: string;
@@ -36,3 +36,15 @@ export async function authorizeEntry(id: string, sessionToken: string): Promise<
 
   return { ok: true, entry };
 }
+
+// Shared response for QueueBusyError (withQueueMutation exhausted its CAS
+// retries) - every route that mutates queue state should map this to a 503
+// instead of letting it fall through as an unhandled 500.
+export function queueBusyResponse(): Response {
+  return Response.json(
+    { error: "A fila está ocupada no momento. Tente novamente.", code: "QUEUE_BUSY" },
+    { status: 503 },
+  );
+}
+
+export { QueueBusyError };
