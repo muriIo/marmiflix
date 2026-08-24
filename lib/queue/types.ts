@@ -46,6 +46,7 @@ export interface SelfView {
   position?: number;
   estimatedWaitMs?: number;
   deadline?: number;
+  phaseStartedAt?: number;
 }
 
 export interface QueueView {
@@ -54,6 +55,8 @@ export interface QueueView {
   namesAhead: string[];
   self: SelfView | null;
   serverTime: number;
+  /** Remaining-time threshold (ms) below which the heating phase is flagged urgent - configurable via env, so the client reads it from here instead of a build-time constant. */
+  heatingUrgencyMs: number;
 }
 
 export class DuplicateNameError extends Error {
