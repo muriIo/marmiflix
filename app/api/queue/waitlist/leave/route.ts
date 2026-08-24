@@ -1,4 +1,5 @@
 import { checkRateLimit } from "../../../../../lib/queue/rate-limit";
+import { QueueBusyError, queueBusyResponse } from "../../../../../lib/queue/route-helpers";
 import { verifyToken } from "../../../../../lib/queue/session";
 import { getState, withQueueMutation } from "../../../../../lib/queue/store";
 
@@ -31,13 +32,22 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: "Token inválido" }, { status: 403 });
   }
 
-  await withQueueMutation((currentState) => {
-    const next = {
-      ...currentState,
-      seatWaitlist: currentState.seatWaitlist.filter((waitlistEntry) => waitlistEntry.id !== id),
-    };
-    return { next, result: next };
-  });
+  try {
+    await withQueueMutation((currentState) => {
+      const next = {
+        ...currentState,
+        seatWaitlist: currentState.seatWaitlist.filter(
+          (waitlistEntry) => waitlistEntry.id !== id,
+        ),
+      };
+      return { next, result: next };
+    });
+  } catch (error) {
+    if (error instanceof QueueBusyError) {
+      return queueBusyResponse();
+    }
+    throw error;
+  }
 
   return Response.json({ ok: true }, { status: 200 });
 }

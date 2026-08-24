@@ -4,6 +4,7 @@ import { dispatchAll } from "../../../../lib/notifications/dispatcher";
 import type { NotificationJob } from "../../../../lib/notifications/types";
 import { applyJoin } from "../../../../lib/queue/engine";
 import { checkRateLimit } from "../../../../lib/queue/rate-limit";
+import { QueueBusyError, queueBusyResponse } from "../../../../lib/queue/route-helpers";
 import { generateSessionToken, hashToken } from "../../../../lib/queue/session";
 import { withQueueMutation } from "../../../../lib/queue/store";
 import {
@@ -92,6 +93,9 @@ export async function POST(request: Request): Promise<Response> {
     }
     if (error instanceof QueueFullError) {
       return Response.json({ error: error.message, code: "QUEUE_FULL" }, { status: 409 });
+    }
+    if (error instanceof QueueBusyError) {
+      return queueBusyResponse();
     }
     throw error;
   }
