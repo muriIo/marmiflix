@@ -215,7 +215,12 @@ describe("buildView - active viewer", () => {
     };
     const view = buildView(state, "a1", now);
 
-    expect(view.self).toEqual({ id: "a1", phase: "confirming", deadline: now + 20_000 });
+    expect(view.self).toEqual({
+      id: "a1",
+      phase: "confirming",
+      deadline: now + 20_000,
+      phaseStartedAt: now,
+    });
   });
 });
 

@@ -1,7 +1,6 @@
+import { HEATING_URGENCY_MS, PER_PERSON_WAIT_MS } from "./config";
 import { HEATING_WINDOW_MS } from "./engine";
 import type { QueueState, QueueView } from "./types";
-
-const PER_PERSON_WAIT_MS = 5 * 60 * 1000;
 
 // While the active entry is still confirming, heating hasn't started yet, so
 // its remaining time is the rest of the confirm window plus a full heating
@@ -40,6 +39,7 @@ export function buildView(state: QueueState, viewerId: string | null, now: numbe
           estimatedWaitMs: baseWaitMs + waitingIndex * PER_PERSON_WAIT_MS,
         },
         serverTime: now,
+        heatingUrgencyMs: HEATING_URGENCY_MS,
       };
     }
 
@@ -52,8 +52,10 @@ export function buildView(state: QueueState, viewerId: string | null, now: numbe
           id: viewerId,
           phase: state.active.phase,
           deadline: state.active.deadline,
+          phaseStartedAt: state.active.phaseStartedAt,
         },
         serverTime: now,
+        heatingUrgencyMs: HEATING_URGENCY_MS,
       };
     }
   }
@@ -64,5 +66,6 @@ export function buildView(state: QueueState, viewerId: string | null, now: numbe
     namesAhead: [],
     self: null,
     serverTime: now,
+    heatingUrgencyMs: HEATING_URGENCY_MS,
   };
 }

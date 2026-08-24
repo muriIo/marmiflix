@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { formatDuration } from "../../lib/format";
-import { HEATING_URGENCY_MS } from "../../lib/queue/engine";
 import type { UseQueueResult } from "../../hooks/useQueue";
 
 export function Heating({ queue }: { queue: UseQueueResult }) {
   const [submitting, setSubmitting] = useState(false);
   const deadline = queue.view?.self?.deadline ?? null;
-  const phaseStartedAt =
-    deadline !== null ? deadline - (5 * 60 * 1000 + HEATING_URGENCY_MS) : null;
+  const phaseStartedAt = queue.view?.self?.phaseStartedAt ?? null;
+  // Server-configured (env-driven) threshold, not a build-time constant, so
+  // ops can retune it without a rebuild.
+  const heatingUrgencyMs = queue.view?.heatingUrgencyMs ?? 30_000;
 
   const [now, setNow] = useState(() => queue.now());
 
@@ -20,7 +21,7 @@ export function Heating({ queue }: { queue: UseQueueResult }) {
 
   const elapsedMs = phaseStartedAt !== null ? Math.max(0, now - phaseStartedAt) : 0;
   const remainingMs = deadline !== null ? Math.max(0, deadline - now) : 0;
-  const isUrgent = deadline !== null && remainingMs <= HEATING_URGENCY_MS;
+  const isUrgent = deadline !== null && remainingMs <= heatingUrgencyMs;
 
   async function handleFinish() {
     if (submitting) {
