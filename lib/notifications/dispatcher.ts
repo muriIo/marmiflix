@@ -2,13 +2,14 @@ import * as webpushModule from "web-push";
 import { buildNotificationPayload } from "./strategies";
 import type { NotificationJob } from "./types";
 import { applyPruneSubscriptions } from "../queue/engine";
+import { vapidPrivateKey, vapidPublicKey, vapidSubject } from "../queue/config";
 import { withQueueMutation } from "../queue/store";
 import type { PushSubscriptionRecord } from "../queue/types";
 
 function configureVapid(): typeof webpushModule {
-  const subject = process.env.VAPID_SUBJECT;
-  const publicKey = process.env.VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  const subject = vapidSubject();
+  const publicKey = vapidPublicKey();
+  const privateKey = vapidPrivateKey();
 
   if (!subject || !publicKey || !privateKey) {
     throw new Error(
