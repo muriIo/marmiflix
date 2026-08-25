@@ -71,19 +71,19 @@ A visitor who opens the app but never joins the queue (the Landing screen) is po
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| IDLE-01 | P1: Stop Idle Polling Outside the Queue | - | Pending |
-| IDLE-02 | P1: Stop Idle Polling Outside the Queue | - | Pending |
-| IDLE-03 | P1: Stop Idle Polling Outside the Queue | - | Pending |
-| IDLE-04 | P1: Stop Idle Polling Outside the Queue | - | Pending |
-| IDLE-05 | P1: Stop Idle Polling Outside the Queue | - | Pending |
-| IDLE-06 | P1: Stop Idle Polling Outside the Queue | - | Pending |
-| IDLE-07 | P1: Stop Idle Polling Outside the Queue | - | Pending |
+| IDLE-01 | P1: Stop Idle Polling Outside the Queue | Execute | Implementing |
+| IDLE-02 | P1: Stop Idle Polling Outside the Queue | Execute | Implementing |
+| IDLE-03 | P1: Stop Idle Polling Outside the Queue | Execute | Implementing |
+| IDLE-04 | P1: Stop Idle Polling Outside the Queue | Execute | Implementing |
+| IDLE-05 | P1: Stop Idle Polling Outside the Queue | Execute | Implementing |
+| IDLE-06 | P1: Stop Idle Polling Outside the Queue | Execute | Implementing |
+| IDLE-07 | P1: Stop Idle Polling Outside the Queue | Execute | Implementing |
 
 **ID format:** `IDLE-[NUMBER]`
 
 **Status values:** Pending -> In Design -> In Tasks -> Implementing -> Verified
 
-**Coverage:** 7 total, 0 mapped to tasks, 7 unmapped (expected pre-Execute; this is a Medium-scope feature with Design/Tasks phases skipped per the auto-sizing rubric - mapping happens inline during Execute)
+**Coverage:** 7 total, 7 mapped (hooks/useIdleTimer.ts, hooks/useQueue.ts, components/queue/Standby.tsx, app/page.tsx), 0 unmapped - pending Verifier pass before marking Verified
 
 ---
 
