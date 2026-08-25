@@ -1,8 +1,9 @@
 import { Redis } from "@upstash/redis";
+import { upstashRedisRestToken, upstashRedisRestUrl } from "./config";
 
 function createRedisClient(): Redis {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url = upstashRedisRestUrl();
+  const token = upstashRedisRestToken();
 
   if (!url || !token) {
     throw new Error(
