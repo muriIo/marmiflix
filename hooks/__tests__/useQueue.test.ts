@@ -550,3 +550,69 @@ describe("useQueue network-health signal", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("useQueue enabled option (IDLE-03/04)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    setDocumentHidden(false);
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("does not poll at all while enabled is false", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(baseView()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderHook(() => useQueue({ enabled: false }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("stops polling as soon as enabled flips from true to false", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(baseView()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { rerender } = renderHook(({ enabled }) => useQueue({ enabled }), {
+      initialProps: { enabled: true },
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    rerender({ enabled: false });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("resumes polling immediately when enabled flips from false to true", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(baseView()));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { rerender } = renderHook(({ enabled }) => useQueue({ enabled }), {
+      initialProps: { enabled: false },
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    rerender({ enabled: true });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
