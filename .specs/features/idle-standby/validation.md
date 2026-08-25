@@ -160,3 +160,65 @@ Importing `IDLE_TIMEOUT_MS` from `lib/queue/config.ts` into `app/page.tsx` (a cl
 ### Updated verdict
 
 **Overall**: ✅ PASS (re-verification). Gate: 149/149 unit tests passed, typecheck clean, lint clean, build succeeded, both unset-default and set-override paths independently confirmed correct at runtime (default falls back to 180; override is genuinely honored when present at build time). No regression in `CONFIRM_WINDOW_MS`/`HEATING_NOMINAL_MS`/`HEATING_URGENCY_MS`/`PER_PERSON_WAIT_MS` behavior. `.env.local` and working tree left exactly as found (verified via md5 and `git status --porcelain`).
+
+---
+
+## Re-verification (env-centralization refactor, out-of-spec) — 2026-08-25
+
+**Reviewed commit**: `de374a7` "refactor(config): centralize all env var reads into lib/queue/config.ts". This is a cross-cutting refactor with no `spec.md` of its own (idle-standby's spec does not govern Redis/VAPID env reads), requested directly by the user mid-session. Reviewed for **behavior-preservation and regression-safety**, not against EARS ACs. `abf002c` (STATE.md-only doc commit, one commit later) is out of scope — code-only review. Independent Verifier, fresh session, no assumptions carried over.
+
+### 1. Diff shape check
+
+`git show de374a7` confirmed: all 6 new `lib/queue/config.ts` exports (`upstashRedisRestUrl`, `upstashRedisRestToken`, `vapidSubject`, `vapidPublicKey`, `vapidPrivateKey`, `nextPublicVapidPublicKey`) are genuine functions (`export function x(): string | undefined { return process.env.X; }`), each a trivial single-line body, no logic added. Every call site updated to call them as functions:
+- `lib/queue/redis-client.ts:5-6` — `upstashRedisRestUrl()`, `upstashRedisRestToken()`
+- `lib/notifications/dispatcher.ts:9-11` — `vapidSubject()`, `vapidPublicKey()`, `vapidPrivateKey()`
+- `lib/notifications/client.ts:34` — `nextPublicVapidPublicKey()`
+
+The pre-existing "throw if missing" checks in `createRedisClient()` (`redis-client.ts:8-12`) and `configureVapid()` (`dispatcher.ts:13-17`) are untouched — same condition, same error message, same location. ✅ PASS.
+
+### 2. Discrimination check (function-vs-const, isolated scratch)
+
+Baseline: `git status --porcelain` on real tree empty before and after.
+
+Scratch: `git worktree add <scratch> HEAD` (detached at `abf002c`), `node_modules` symlinked in, `.env.test` copied in (this is what `vitest.integration.setup.ts` loads — not `.env.local`). In the scratch only, converted all 6 functions in `config.ts` back to plain top-level `export const x: string | undefined = process.env.X` (matching the earlier broken shape the implementer described), and updated the 3 call sites to reference them as values (no parens), to faithfully reproduce the earlier broken version rather than a mismatched call-signature error.
+
+Started the local Redis/SRH stack (`docker compose -f docker-compose.test.yml up -d`) and ran `npm run test:integration` against the mutated scratch:
+
+- **Result: 1 failed, 69 passed.** The failure is `lib/notifications/__tests__/dispatcher.integration.test.ts` → `removes an active entry's pushSubscription after its recipient rejects with statusCode 410` — confirmed via `grep -n "^\s*it("` that this is the **first** `it(...)` in that file. Stderr shows the root cause exactly as the implementer described: `dispatchAll failed Error: Missing VAPID_SUBJECT, VAPID_PUBLIC_KEY, or VAPID_PRIVATE_KEY environment variable.`, thrown from `configureVapid()`, causing the subsequent assertion (`expect(state.active?.pushSubscription).toBeUndefined()`) to fail because pruning never ran. All other files/tests unaffected (const-freeze only breaks the very first test in this one file, exactly as claimed — later tests read fresh module state after `vi.resetModules()` in `afterEach`).
+- Reverted the scratch to the real committed code (functions, not consts) mentally — no need to re-run, since it's identical to `de374a7`'s already-passing 70/70 (see Gate below).
+
+**Mutant killed.** This proves the function-vs-const distinction is load-bearing, not cosmetic, exactly as the commit message claims.
+
+Teardown: `docker compose -f docker-compose.test.yml down`, `git worktree remove --force <scratch>`. Confirmed `git status --porcelain` on real tree matches pre-sensor baseline (empty).
+
+### 3. Full gate check (real committed code, `de374a7`/HEAD)
+
+| Command | Result |
+| --- | --- |
+| `npm run typecheck` | clean, 0 errors |
+| `npm run lint` | clean, 0 errors/warnings |
+| `npm run test:unit` | **149 passed**, 0 failed, 0 skipped — same count as pre-refactor baseline (no tests added/removed by this commit, as expected for a pure plumbing refactor) |
+| `npm run test:integration` (local Redis/SRH stack via `docker-compose.test.yml`) | **70 passed**, 0 failed, 0 skipped |
+
+Docker stack torn down after (`docker compose -f docker-compose.test.yml down`).
+
+### 4. Pre-existing timing exports untouched
+
+Confirmed by reading `lib/queue/config.ts:1-40`: `CONFIRM_WINDOW_MS`, `HEATING_NOMINAL_MS`, `HEATING_URGENCY_MS`, `PER_PERSON_WAIT_MS`, and `IDLE_TIMEOUT_MS` are byte-identical to their pre-`de374a7` form (the diff only appends new code after line 40; nothing above it changed). ✅ PASS — no behavior change.
+
+### 5. Security sanity check: bundle inlining
+
+`rm -rf .next && npm run build` succeeded. Grepped the compiled output for the actual secret values (from `.env.local`):
+
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`'s real value (`BEzq0AXFD6...Vi4`) **found** in `.next/static/chunks/app/page-a8cf098a8ef861e3.js` — correctly inlined into the client bundle, unchanged behavior from before this refactor.
+- `VAPID_PRIVATE_KEY`'s real value (`lUihqhsNe0wu3f3mT8RvWklAh3pAKINIb8vS6OcrJ3U`) — **zero matches** anywhere under `.next/` (not just `.next/static/`). Confirms the refactor did not introduce a leak: even though `vapidPrivateKey()` now lives in `lib/queue/config.ts` (a module also imported client-side via `IDLE_TIMEOUT_MS`, per the prior re-verification round's code-quality note), the *function* may be bundled but its return value resolves via a client-side `process.env` shim that has no such key, so nothing sensitive is emitted as a literal.
+
+`.next` removed after (`rm -rf .next`); it's gitignored, tree left tidy.
+
+### Code quality
+
+No scope creep: only the 4 files the commit touches are in the diff (`config.ts`, `redis-client.ts`, `dispatcher.ts`, `client.ts`). No new abstractions beyond the minimum needed (6 near-identical one-line functions, consistent with the existing file's style). Matches existing patterns in the file. Senior-engineer-approvable: the const→function distinction is well-justified by a real, independently-reproduced test failure, not defensive over-engineering.
+
+### Verdict
+
+**Overall**: ✅ **PASS**. All 6 config.ts exports are genuine functions with correct call sites; the function-vs-const distinction is empirically load-bearing (discrimination check killed the mutant on the exact test/error the implementer described); full gate green (149 unit + 70 integration, typecheck, lint); pre-existing QUEUE_*/IDLE_TIMEOUT_MS exports untouched; production bundle correctly inlines the public VAPID key and never emits the private key's value. No regressions found. Real working tree confirmed clean (`git status --porcelain` empty) both before and after all scratch/mutation work.
