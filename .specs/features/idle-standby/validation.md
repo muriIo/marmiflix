@@ -118,3 +118,45 @@ None required — no surviving mutants, no gate failures. The `app/page.tsx`/`St
 **Issues found**: None blocking. Sole gap: no automated test exists for the `app/page.tsx` composition (the `outsideQueue` gate, the idle→Standby swap, the button→Landing return) — this mirrors the repo's existing no-component-test convention (`Landing.tsx`, `Waiting.tsx` etc. also untested) and was pre-scoped as acceptable given manual verification in commit `2c087c6`. Not raised as a fix task per the verification brief's explicit instruction.
 
 **Next steps**: None required to mark this feature done. If the team later adopts component/integration tests generally, `app/page.tsx`'s idle-gating composition (IDLE-01/05/06 in particular) would be the highest-value first target since it's the only layer currently unverified by automation.
+
+---
+
+## Re-verification (env var config) — 2026-08-25
+
+**New commit**: `47340d1` "feat(idle-standby): make idle timeout configurable via env var" — refactors `lib/queue/config.ts` (`secondsFromEnv` split into `secondsFromString(raw, default)` + `secondsFromEnv(name, default)`), adds `IDLE_TIMEOUT_MS` export reading `NEXT_PUBLIC_QUEUE_IDLE_TIMEOUT_SECONDS` (default 180s), and switches `app/page.tsx` to import `IDLE_TIMEOUT_MS` from `lib/queue/config` instead of a local hardcoded constant. Also updates `spec.md`'s IDLE-02 assumption row and `.env.example`. Independent re-verifier, fresh session, no assumptions carried over from the prior PASS.
+
+### Spec-anchored check
+
+IDLE-02 assumption row (`.specs/features/idle-standby/spec.md:28`) now reads: "180 seconds (3 minutes) of no qualifying activity, default overridable via `NEXT_PUBLIC_QUEUE_IDLE_TIMEOUT_SECONDS` (client-inlined at build time, per `lib/queue/config.ts`'s existing env-config pattern)". Verified accurate: default is 180s (`lib/queue/config.ts:37` `secondsFromString(process.env.NEXT_PUBLIC_QUEUE_IDLE_TIMEOUT_SECONDS, 180) * 1000`), override works when the var is set at build time, and the change genuinely requires a rebuild (not a redeploy/restart) — confirmed empirically below. `.env.example:45-51` documents the same, correctly. ✅ PASS.
+
+### Refactor equivalence (`secondsFromEnv` → `secondsFromString` + `secondsFromEnv`)
+
+`lib/queue/config.ts:14-16`: `secondsFromEnv(name, defaultSeconds) { return secondsFromString(process.env[name], defaultSeconds); }` — a pure extraction; `secondsFromString`'s body (`config.ts:3-12`) is byte-for-byte the same logic the old `secondsFromEnv` had (falsy → default, non-finite/≤0 → default, else parsed value). Same inputs → same outputs for `CONFIRM_WINDOW_MS`, `HEATING_NOMINAL_MS`, `HEATING_URGENCY_MS`, `PER_PERSON_WAIT_MS` — confirmed by code diff (`git show 47340d1` — no logic changed, only extracted) and by the full `test:unit` suite still passing at the same 149-test count (no regression surfaced). No test file exists for `lib/queue/config.ts` (matches this repo's pre-existing convention — same gap noted for the original `secondsFromEnv` in the prior validation round; not a new gap from this commit). ✅ PASS.
+
+### Gate check
+
+| Command | Result |
+| --- | --- |
+| `npm run test:unit` | 149 passed, 0 failed, 0 skipped — same count as prior PASS (no tests added/removed by this commit, as expected) |
+| `npm run typecheck` | clean, 0 errors |
+| `npm run lint` | clean, 0 errors/warnings |
+| `npm run build` (`rm -rf .next && npm run build`) | succeeded |
+
+### Build-inlining verification (independently reproduced, not just trusted)
+
+Baseline captured before touching anything: `.env.local` (gitignored, untracked) content and md5 recorded; `git status --porcelain` empty.
+
+1. **Unset case**: `rm -rf .next && npm run build` with no `NEXT_PUBLIC_QUEUE_IDLE_TIMEOUT_SECONDS` anywhere. Compiled output: `.next/static/chunks/app/page-328bc3fca65ba208.js` contains `let O=1e3*q(T.env.NEXT_PUBLIC_QUEUE_IDLE_TIMEOUT_SECONDS,180)` where `T` is the module-scoped `process` shim (`var T=a(5704)`). **Nuance vs. the implementer's framing**: this is not literally replaced with `undefined` at build time — it remains a dynamic property read on the client's `process` shim. Root cause (confirmed by reading `node_modules/next/dist/build/../lib/static-env.js`'s `getNextPublicEnvironmentVariables()`): Next only creates a static-replacement entry for a `NEXT_PUBLIC_*` key that is actually present in `process.env` at build time (`for (const key in process.env) if (key.startsWith('NEXT_PUBLIC_')) ...`); an unset var gets no entry at all, so the literal member expression is left dynamic. At runtime the client's `process.env` shim has no such key, so the read evaluates to `undefined`, and `secondsFromString` correctly falls back to the 180 default — the functional outcome the spec requires is still correct, just via a runtime fallback rather than a build-time literal substitution. Confirmed this is standard, documented Next.js behavior (not specific to this codebase) by reading the Next.js source directly, and confirmed it does not vary based on literal-vs-bracket syntax — it varies on whether the key exists in `process.env` at all when Next builds.
+2. **Set case**: added `NEXT_PUBLIC_QUEUE_IDLE_TIMEOUT_SECONDS=42` to `.env.local`, `rm -rf .next && npm run build`. Compiled output: `.next/static/chunks/app/page-35255fd0ef04169d.js` contains `let O=1e3*q("42",180)` — the literal string `"42"` is genuinely inlined, `T.env...` reference is gone entirely. This matches the implementer's claim precisely for the set case.
+3. **Contrast/control**: confirmed the existing `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (set in `.env.local` throughout) is properly inlined as its literal key value in the same chunk (the variable name itself does not appear in the bundle, only the key string) — proving Next's inlining mechanism is genuinely active in this build/toolchain, and the unset-`IDLE_TIMEOUT_MS` case above is explained by the "not present at build time" rule, not a broken toolchain.
+4. **Cleanup**: `.env.local` restored from the pre-test backup (md5 `a131f50e51ffab88a0e4407b2e8b7684`, byte-identical), confirmed via diff. Final `rm -rf .next && npm run build` run with no test var set, matching what an ordinary contributor would produce. `git status --porcelain` empty before, during (implicitly, since `.env.local`/`.next` are gitignored and untracked), and after — real tracked tree untouched throughout.
+
+**Verdict on this check**: ✅ PASS with a documented nuance — the override works correctly and requires a rebuild as claimed; the "unset → inlined as literal undefined" framing is not exactly what happens (it's a dynamic read resolved by the client process shim instead), but the resulting behavior (falls back to 180) is identical and correct, and this is standard Next.js behavior rather than a defect introduced by this commit.
+
+### Code quality observation (non-blocking)
+
+Importing `IDLE_TIMEOUT_MS` from `lib/queue/config.ts` into `app/page.tsx` (a client component) pulls the *entire* module into the client bundle, including the other four exports (`CONFIRM_WINDOW_MS`, `HEATING_NOMINAL_MS`, `HEATING_URGENCY_MS`, `PER_PERSON_WAIT_MS`) that were previously server-only — confirmed present in the compiled client chunk (`A("QUEUE_CONFIRM_WINDOW_SECONDS",60)` etc. alongside the idle constant). These read non-`NEXT_PUBLIC_` env vars via dynamic `process.env[name]`, which are simply always `undefined` client-side and fall back to their defaults — no secret exposure (values are just timing numbers, not sensitive) and no functional bug, just a few bytes of avoidable client bundle bloat from a module that mixes client- and server-intended constants. Not spec-relevant and not raised as a fix task; noted for future awareness only.
+
+### Updated verdict
+
+**Overall**: ✅ PASS (re-verification). Gate: 149/149 unit tests passed, typecheck clean, lint clean, build succeeded, both unset-default and set-override paths independently confirmed correct at runtime (default falls back to 180; override is genuinely honored when present at build time). No regression in `CONFIRM_WINDOW_MS`/`HEATING_NOMINAL_MS`/`HEATING_URGENCY_MS`/`PER_PERSON_WAIT_MS` behavior. `.env.local` and working tree left exactly as found (verified via md5 and `git status --porcelain`).
