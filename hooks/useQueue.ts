@@ -62,7 +62,12 @@ export interface UseQueueResult {
   retryNow: () => void;
 }
 
-export function useQueue(): UseQueueResult {
+export interface UseQueueOptions {
+  /** Set false to stop the poll loop entirely (e.g. an idle visitor outside the queue). Defaults to true. */
+  enabled?: boolean;
+}
+
+export function useQueue({ enabled = true }: UseQueueOptions = {}): UseQueueResult {
   const [view, setView] = useState<QueueView | null>(null);
   const [connection, setConnection] = useState<ConnectionState>("ok");
   const offsetRef = useRef(0);
@@ -131,6 +136,10 @@ export function useQueue(): UseQueueResult {
   // Self-rescheduling timeout (not setInterval) so the delay between attempts
   // can vary with the backoff schedule instead of staying fixed.
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -179,7 +188,7 @@ export function useQueue(): UseQueueResult {
       }
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [poll]);
+  }, [poll, enabled]);
 
   const retryNow = useCallback(() => {
     retryRef.current();

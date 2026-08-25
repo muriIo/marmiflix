@@ -1,3 +1,4 @@
+import { nextPublicVapidPublicKey } from "../queue/config";
 import type { PushSubscriptionRecord } from "../queue/types";
 
 // Standard Push API ecosystem helper (MDN / web.dev): a VAPID application
@@ -33,7 +34,7 @@ export async function requestPushSubscription(): Promise<PushSubscriptionRecord 
     return null;
   }
 
-  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const vapidPublicKey = nextPublicVapidPublicKey();
   if (!vapidPublicKey) {
     return null;
   }
