@@ -25,7 +25,7 @@ A visitor who opens the app but never joins the queue (the Landing screen) is po
 
 | Assumption / decision | Chosen default | Rationale | Confirmed? |
 | --- | --- | --- | --- |
-| Idle threshold | 180 seconds (3 minutes) of no qualifying activity | Directly specified by user | y |
+| Idle threshold | 180 seconds (3 minutes) of no qualifying activity, default overridable via `NEXT_PUBLIC_QUEUE_IDLE_TIMEOUT_SECONDS` (client-inlined at build time, per `lib/queue/config.ts`'s existing env-config pattern) | Directly specified by user; env override added on request, matching the existing `QUEUE_*` timing-config convention | y |
 | Scope of idle detection | Only while outside the queue (`self.phase` undefined, i.e. the Landing screen) | Directly confirmed - queued visitors always need live status | y |
 | Behavior on idle timeout | Stop polling `GET /api/queue` entirely and show a new Standby screen instead of Landing | Directly confirmed over the reduced-polling alternative | y |
 | Qualifying activity (resets the timer) | `mousemove`, `keydown`, `click`, `touchstart`, `scroll`, and the tab regaining visibility (`visibilitychange` -> not hidden) | Directly confirmed; visibility-regain counts because "no harm in being active" reflects real intent, same as an input event | y |

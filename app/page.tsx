@@ -10,9 +10,7 @@ import { Standby } from "../components/queue/Standby";
 import { Waiting } from "../components/queue/Waiting";
 import { useIdleTimer } from "../hooks/useIdleTimer";
 import { useQueue, type UseQueueResult } from "../hooks/useQueue";
-
-// IDLE-02: 3 minutes of no qualifying activity outside the queue.
-const IDLE_TIMEOUT_MS = 3 * 60 * 1000;
+import { IDLE_TIMEOUT_MS } from "../lib/queue/config";
 
 function PhaseRouter({
   queue,
