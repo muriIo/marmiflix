@@ -71,19 +71,19 @@ A visitor who opens the app but never joins the queue (the Landing screen) is po
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| IDLE-01 | P1: Stop Idle Polling Outside the Queue | Execute | Implementing |
-| IDLE-02 | P1: Stop Idle Polling Outside the Queue | Execute | Implementing |
-| IDLE-03 | P1: Stop Idle Polling Outside the Queue | Execute | Implementing |
-| IDLE-04 | P1: Stop Idle Polling Outside the Queue | Execute | Implementing |
-| IDLE-05 | P1: Stop Idle Polling Outside the Queue | Execute | Implementing |
-| IDLE-06 | P1: Stop Idle Polling Outside the Queue | Execute | Implementing |
-| IDLE-07 | P1: Stop Idle Polling Outside the Queue | Execute | Implementing |
+| IDLE-01 | P1: Stop Idle Polling Outside the Queue | Execute | Verified |
+| IDLE-02 | P1: Stop Idle Polling Outside the Queue | Execute | Verified |
+| IDLE-03 | P1: Stop Idle Polling Outside the Queue | Execute | Verified |
+| IDLE-04 | P1: Stop Idle Polling Outside the Queue | Execute | Verified |
+| IDLE-05 | P1: Stop Idle Polling Outside the Queue | Execute | Verified |
+| IDLE-06 | P1: Stop Idle Polling Outside the Queue | Execute | Verified |
+| IDLE-07 | P1: Stop Idle Polling Outside the Queue | Execute | Verified |
 
 **ID format:** `IDLE-[NUMBER]`
 
 **Status values:** Pending -> In Design -> In Tasks -> Implementing -> Verified
 
-**Coverage:** 7 total, 7 mapped (hooks/useIdleTimer.ts, hooks/useQueue.ts, components/queue/Standby.tsx, app/page.tsx), 0 unmapped - pending Verifier pass before marking Verified
+**Coverage:** 7 total, 7 mapped (hooks/useIdleTimer.ts, hooks/useQueue.ts, components/queue/Standby.tsx, app/page.tsx), 0 unmapped - Verifier PASS, see validation.md
 
 ---
 
