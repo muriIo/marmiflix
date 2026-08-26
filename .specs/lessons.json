@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 7,
+  "next_id": 10,
   "lessons": [
     {
       "id": "L-001",
@@ -112,6 +112,60 @@
       ],
       "created": "2026-08-21T18:26:08Z",
       "last_seen": "2026-08-21T18:26:08Z"
+    },
+    {
+      "id": "L-007",
+      "key": "spec_precision_gap::when a spec ac requires no additional observable delay assert it with a fake timer test proving zero timer advancement was needed not just a functional correctness test on the happy path",
+      "text": "When a spec AC requires no additional observable delay, assert it with a fake-timer test proving zero timer advancement was needed, not just a functional correctness test on the happy path.",
+      "signal": "spec_precision_gap",
+      "scope": "notifications",
+      "status": "candidate",
+      "features": [
+        "push-subscription-sw-ready"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "SWREADY-02 (spec.md) (notifications)"
+      ],
+      "created": "2026-08-26T20:06:15Z",
+      "last_seen": "2026-08-26T20:06:15Z"
+    },
+    {
+      "id": "L-008",
+      "key": "ac_gap::when an ac requires preserving a side effect such as a log reason or severity across existing code paths assert that side effect directly in each affected test not only the function s return value",
+      "text": "When an AC requires preserving a side effect such as a log reason or severity across existing code paths, assert that side effect directly in each affected test, not only the function's return value.",
+      "signal": "ac_gap",
+      "scope": "notifications",
+      "status": "candidate",
+      "features": [
+        "push-subscription-sw-ready"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "SWREADY-05 (spec.md); validation.md iteration 1 (notifications)"
+      ],
+      "created": "2026-08-26T20:06:15Z",
+      "last_seen": "2026-08-26T20:06:15Z"
+    },
+    {
+      "id": "L-009",
+      "key": "ac_gap::every edge case listed in a spec s edge cases section must get its own explicit done when test item in tasks md not be left implicit in the main acceptance criteria test plan",
+      "text": "Every edge case listed in a spec's Edge Cases section must get its own explicit Done-when test item in tasks.md, not be left implicit in the main acceptance-criteria test plan.",
+      "signal": "ac_gap",
+      "scope": "tasks-authoring",
+      "status": "candidate",
+      "features": [
+        "push-subscription-sw-ready"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "spec.md Edge Cases section; validation.md iteration 1 (tasks-authoring)"
+      ],
+      "created": "2026-08-26T20:06:15Z",
+      "last_seen": "2026-08-26T20:06:15Z"
     }
   ]
 }

@@ -31,11 +31,45 @@ const OUTCOME_LOG_LEVEL: Record<string, "info" | "warn" | "error"> = {
   permission_denied: "info",
   vapid_key_missing: "warn",
   subscribe_failed: "error",
+  sw_not_ready: "error",
 };
 
 function logSubscriptionOutcome(reason: string, detail?: unknown): void {
   const level = OUTCOME_LOG_LEVEL[reason] ?? "warn";
   Sentry.logger[level]("push_subscription_outcome", { reason, detail: String(detail ?? "") });
+}
+
+// register() resolves once the registration *exists* (possibly still
+// installing), not once it's active - but subscribe() requires an active
+// worker at the moment it's called. navigator.serviceWorker.ready resolves
+// only once there IS an active registration for this scope, which is the
+// correct signal to wait on. It isn't spec-guaranteed to always settle (a
+// registration that becomes redundant before activating can leave it
+// pending forever), so this is bounded by a timeout rather than awaited
+// directly - trading that theoretical hang for a bounded, observable
+// failure (logged as "sw_not_ready").
+const SW_READY_TIMEOUT_MS = 10_000;
+
+function waitForActiveServiceWorker(
+  timeoutMs: number,
+): Promise<ServiceWorkerRegistration | null> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        resolve(null);
+      }
+    }, timeoutMs);
+
+    navigator.serviceWorker.ready.then((registration) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        resolve(registration);
+      }
+    });
+  });
 }
 
 /**
@@ -65,7 +99,7 @@ export async function requestPushSubscription(): Promise<PushSubscriptionRecord 
   }
 
   try {
-    const registration = await navigator.serviceWorker.register("/sw.js");
+    await navigator.serviceWorker.register("/sw.js");
 
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
@@ -73,7 +107,13 @@ export async function requestPushSubscription(): Promise<PushSubscriptionRecord 
       return null;
     }
 
-    const subscription = await registration.pushManager.subscribe({
+    const activeRegistration = await waitForActiveServiceWorker(SW_READY_TIMEOUT_MS);
+    if (!activeRegistration) {
+      logSubscriptionOutcome("sw_not_ready");
+      return null;
+    }
+
+    const subscription = await activeRegistration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
     });
