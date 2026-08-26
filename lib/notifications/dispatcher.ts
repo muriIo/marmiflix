@@ -47,6 +47,20 @@ function isInvalidSubscriptionError(reason: unknown): boolean {
   return statusCode === 404 || statusCode === 410;
 }
 
+// Structured, greppable logs for diagnosing "notification didn't fire"
+// reports - console.error alone gave no way to tell a VAPID misconfig apart
+// from expired subscriptions apart from genuine delivery failures. Endpoint
+// is truncated (it's a push-service URL, not a secret, but still identifying)
+// to a short suffix - enough to correlate repeat failures without logging it
+// in full.
+function endpointSuffix(endpoint: string): string {
+  return endpoint.slice(-12);
+}
+
+function logNotificationEvent(event: string, data: Record<string, unknown>): void {
+  console.log(JSON.stringify({ event, ...data }));
+}
+
 /**
  * Sends one notification job to every recipient, in parallel, tolerating
  * individual failures. Returns the subset of recipients whose subscription
@@ -67,19 +81,34 @@ export async function dispatchNotificationJob(
   );
 
   const invalidRecipients: PushSubscriptionRecord[] = [];
+  let delivered = 0;
+  let failed = 0;
 
   results.forEach((result, index) => {
     if (result.status !== "rejected") {
+      delivered += 1;
       return;
     }
     if (isInvalidSubscriptionError(result.reason)) {
       invalidRecipients.push(job.recipients[index]);
     } else {
-      console.error(
-        `web-push delivery failed for scenario "${job.scenario}"`,
-        result.reason,
-      );
+      failed += 1;
+      const reason = result.reason as { statusCode?: number; message?: string } | undefined;
+      logNotificationEvent("notification_delivery_failed", {
+        scenario: job.scenario,
+        endpoint: endpointSuffix(job.recipients[index].endpoint),
+        statusCode: reason?.statusCode,
+        message: reason?.message,
+      });
     }
+  });
+
+  logNotificationEvent("notification_dispatch", {
+    scenario: job.scenario,
+    recipients: job.recipients.length,
+    delivered,
+    invalid: invalidRecipients.length,
+    failed,
   });
 
   return invalidRecipients;
@@ -115,6 +144,11 @@ export async function dispatchAll(
       await pruneInvalidSubscriptions(invalidEndpoints);
     }
   } catch (error) {
-    console.error("dispatchAll failed", error);
+    const message = error instanceof Error ? error.message : String(error);
+    logNotificationEvent("notification_dispatch_error", {
+      scenarios: jobs.map((job) => job.scenario),
+      reason: message.includes("VAPID") ? "vapid_not_configured" : "unexpected_error",
+      message,
+    });
   }
 }

@@ -11,10 +11,12 @@
 // since a waitlisted visitor has no queue entry to poll for.
 self.addEventListener("push", (event) => {
   let data = {};
+  let parseError = null;
   if (event.data) {
     try {
       data = event.data.json();
-    } catch {
+    } catch (error) {
+      parseError = String(error);
       data = {};
     }
   }
@@ -26,6 +28,20 @@ self.addEventListener("push", (event) => {
         includeUncontrolled: true,
       });
       const focused = clientList.filter((client) => client.focused);
+
+      // Visible via the browser's Application > Service Workers console -
+      // the one place we can see whether a push actually reached the client
+      // at all, and which delivery branch it took, when a user reports "no
+      // notification fired".
+      console.log(
+        JSON.stringify({
+          event: "sw_push_received",
+          scenario: data.scenario,
+          parseError,
+          focusedClients: focused.length,
+          totalClients: clientList.length,
+        }),
+      );
 
       if (focused.length > 0) {
         focused.forEach((client) => client.postMessage(data));

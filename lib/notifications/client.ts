@@ -15,6 +15,16 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+// Every early-exit and failure path below used to collapse into a bare
+// `null`, indistinguishable from every other reason a caller saw no
+// subscription. Logging the reason (browser console today; wire to a real
+// client-error sink later if it proves useful) is what lets "notification
+// never fired" reports be told apart: never granted, unsupported browser,
+// missing server config, vs. subscribe() itself throwing.
+function logSubscriptionOutcome(reason: string, detail?: unknown): void {
+  console.log(JSON.stringify({ event: "push_subscription_outcome", reason, detail: String(detail ?? "") }));
+}
+
 /**
  * Registers the service worker and requests a push subscription, tied to the
  * caller's own gesture (never invoked on page load - see context.md's
@@ -31,11 +41,13 @@ export async function requestPushSubscription(): Promise<PushSubscriptionRecord 
     !("PushManager" in window) ||
     !("Notification" in window)
   ) {
+    logSubscriptionOutcome("unsupported");
     return null;
   }
 
   const vapidPublicKey = nextPublicVapidPublicKey();
   if (!vapidPublicKey) {
+    logSubscriptionOutcome("vapid_key_missing");
     return null;
   }
 
@@ -44,6 +56,7 @@ export async function requestPushSubscription(): Promise<PushSubscriptionRecord 
 
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
+      logSubscriptionOutcome("permission_denied", permission);
       return null;
     }
 
@@ -52,8 +65,10 @@ export async function requestPushSubscription(): Promise<PushSubscriptionRecord 
       applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
     });
 
+    logSubscriptionOutcome("subscribed");
     return subscription.toJSON() as unknown as PushSubscriptionRecord;
-  } catch {
+  } catch (error) {
+    logSubscriptionOutcome("subscribe_failed", error instanceof Error ? error.message : error);
     return null;
   }
 }
