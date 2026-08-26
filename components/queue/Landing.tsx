@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
+import Link from "next/link";
 import { formatDuration } from "../../lib/format";
 import { QueueActionError, type UseQueueResult } from "../../hooks/useQueue";
 import { requestPushSubscription } from "../../lib/notifications/client";
@@ -116,6 +117,18 @@ export function Landing({ queue }: { queue: UseQueueResult }) {
           {submitting ? "Entrando..." : "Entrar na fila"}
         </button>
       </form>
+
+      <p className="text-xs text-cream-500 mt-6 text-center">
+        Ao entrar na fila, você concorda com os{" "}
+        <Link href="/termos" className="text-ember-500 underline">
+          Termos de Uso
+        </Link>{" "}
+        e a{" "}
+        <Link href="/privacidade" className="text-ember-500 underline">
+          Política de Privacidade
+        </Link>
+        .
+      </p>
     </div>
   );
 }
