@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import * as Sentry from "@sentry/nextjs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { requestPushSubscription } from "../client";
 
@@ -8,9 +9,15 @@ const ORIGINAL_VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 // cleanly (unpadded base64url is only ever valid at length % 4 of 0, 2, or 3).
 const FAKE_VAPID_KEY = Buffer.from("fake-vapid-public-key-bytes").toString("base64url");
 
+type StubRegistration = { pushManager: { subscribe: () => Promise<unknown> } };
+
 function stubServiceWorkerSupport(options: {
   requestPermission: () => Promise<NotificationPermission>;
   subscribe?: () => Promise<unknown>;
+  // What navigator.serviceWorker.ready resolves to - defaults to the same
+  // registration register() returns, i.e. already active (no added delay),
+  // so existing callers of this helper are unaffected by the ready wait.
+  ready?: Promise<StubRegistration>;
 }) {
   const subscribe =
     options.subscribe ??
@@ -22,12 +29,12 @@ function stubServiceWorkerSupport(options: {
         }),
       }));
 
-  const register = vi.fn().mockResolvedValue({
-    pushManager: { subscribe },
-  });
+  const registration: StubRegistration = { pushManager: { subscribe } };
+  const register = vi.fn().mockResolvedValue(registration);
+  const ready = options.ready ?? Promise.resolve(registration);
 
   Object.defineProperty(window.navigator, "serviceWorker", {
-    value: { register },
+    value: { register, ready },
     configurable: true,
   });
   Object.defineProperty(window, "PushManager", {
@@ -87,5 +94,95 @@ describe("requestPushSubscription (NOTIF-03, NOTIF-28)", () => {
     delete process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
     await expect(requestPushSubscription()).resolves.toBeNull();
+  });
+
+  it("waits for the service worker registration to become active before calling subscribe (SWREADY-01, SWREADY-02)", async () => {
+    vi.useFakeTimers();
+    try {
+      const subscribe = vi.fn().mockResolvedValue({
+        toJSON: () => ({
+          endpoint: "https://push.example/delayed-ready",
+          keys: { p256dh: "p256dh-key", auth: "auth-key" },
+        }),
+      });
+      let resolveReady: (registration: StubRegistration) => void = () => {};
+      const readyPromise = new Promise<StubRegistration>((resolve) => {
+        resolveReady = resolve;
+      });
+
+      stubServiceWorkerSupport({
+        requestPermission: () => Promise.resolve("granted"),
+        ready: readyPromise,
+      });
+
+      const resultPromise = requestPushSubscription();
+
+      // Let register()/requestPermission() settle - subscribe must not have
+      // been called yet, since the registration isn't active.
+      await vi.advanceTimersByTimeAsync(0);
+      expect(subscribe).not.toHaveBeenCalled();
+
+      // The registration becomes active, well within the timeout window.
+      resolveReady({ pushManager: { subscribe } });
+      await vi.advanceTimersByTimeAsync(0);
+
+      const result = await resultPromise;
+      expect(subscribe).toHaveBeenCalledTimes(1);
+      expect(result).toEqual({
+        endpoint: "https://push.example/delayed-ready",
+        keys: { p256dh: "p256dh-key", auth: "auth-key" },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("returns null and logs subscribe_failed if subscribe() still throws once the registration is active (SWREADY-04)", async () => {
+    const loggerErrorSpy = vi.spyOn(Sentry.logger, "error");
+    const subscribeError = new Error("NotAllowedError: subscribe failed");
+    const subscribe = vi.fn().mockRejectedValue(subscribeError);
+
+    stubServiceWorkerSupport({
+      requestPermission: () => Promise.resolve("granted"),
+      subscribe,
+    });
+
+    const result = await requestPushSubscription();
+
+    expect(result).toBeNull();
+    expect(subscribe).toHaveBeenCalledTimes(1);
+    expect(loggerErrorSpy).toHaveBeenCalledWith(
+      "push_subscription_outcome",
+      expect.objectContaining({ reason: "subscribe_failed", detail: subscribeError.message }),
+    );
+  });
+
+  it("times out after 10s if the service worker never becomes active, logging sw_not_ready and never calling subscribe (SWREADY-03)", async () => {
+    vi.useFakeTimers();
+    try {
+      const loggerErrorSpy = vi.spyOn(Sentry.logger, "error");
+      const subscribe = vi.fn();
+      const neverResolvingReady = new Promise<StubRegistration>(() => {});
+
+      stubServiceWorkerSupport({
+        requestPermission: () => Promise.resolve("granted"),
+        subscribe,
+        ready: neverResolvingReady,
+      });
+
+      const resultPromise = requestPushSubscription();
+
+      await vi.advanceTimersByTimeAsync(10_000);
+
+      const result = await resultPromise;
+      expect(result).toBeNull();
+      expect(subscribe).not.toHaveBeenCalled();
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        "push_subscription_outcome",
+        expect.objectContaining({ reason: "sw_not_ready" }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

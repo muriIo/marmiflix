@@ -64,11 +64,11 @@
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| SWREADY-01 | P1 | Tasks (T1) | In Tasks |
-| SWREADY-02 | P1 | Tasks (T1) | In Tasks |
-| SWREADY-03 | P1 | Tasks (T1) | In Tasks |
-| SWREADY-04 | P1 | Tasks (T1) | In Tasks |
-| SWREADY-05 | P1 | Tasks (T1) | In Tasks |
+| SWREADY-01 | P1 | Tasks (T1) | Implementing |
+| SWREADY-02 | P1 | Tasks (T1) | Implementing |
+| SWREADY-03 | P1 | Tasks (T1) | Implementing |
+| SWREADY-04 | P1 | Tasks (T1) | Implementing |
+| SWREADY-05 | P1 | Tasks (T1) | Implementing |
 
 **ID format:** `SWREADY-[NUMBER]`, mapped 1:1 to the acceptance criteria above in order.
 

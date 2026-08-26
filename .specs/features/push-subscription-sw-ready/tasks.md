@@ -69,17 +69,20 @@ T1
 
 **Done when**:
 
-- [ ] `SW_READY_TIMEOUT_MS = 10_000` constant and `waitForActiveServiceWorker(timeoutMs): Promise<ServiceWorkerRegistration | null>` helper added to `lib/notifications/client.ts`, per design's sketch (races `navigator.serviceWorker.ready` vs. a timer, clears the timer on whichever settles first, never rejects)
-- [ ] `requestPushSubscription()` calls `waitForActiveServiceWorker(SW_READY_TIMEOUT_MS)` after permission is granted and before calling `subscribe()`
-- [ ] On timeout (`null` returned by the helper): logs `sw_not_ready` via the existing `logSubscriptionOutcome` mechanism, returns `null`, and never calls `pushManager.subscribe()` (SWREADY-03)
-- [ ] `pushManager.subscribe()` is called on the registration the helper resolved (from `navigator.serviceWorker.ready`), not the possibly-still-installing one `register()` returned (design decision - same object in this app, but sourced correctly)
-- [ ] `OUTCOME_LOG_LEVEL` gains `sw_not_ready: "error"`
-- [ ] `stubServiceWorkerSupport` in `client.test.ts` extended so callers can control when/whether `navigator.serviceWorker.ready` resolves (e.g. accept an optional `ready` promise, defaulting to an already-active registration so the existing non-timing tests need no changes)
-- [ ] New test (SWREADY-01/02, spec's first Independent Test): with `vi.useFakeTimers()`, a `ready` promise that resolves after a delay shorter than 10s - asserts `subscribe()` has not been called before the delay elapses and has been called after
-- [ ] New test (SWREADY-03, spec's second Independent Test): with `vi.useFakeTimers()`, a `ready` promise that never resolves, advanced past 10s - asserts the function resolves to `null`, `subscribe()` is never called, and the `sw_not_ready`/`error` outcome was logged (spy on `Sentry.logger.error`, e.g. `vi.spyOn(Sentry, "logger")`-shaped access consistent with how `@sentry/nextjs` exposes `logger`)
-- [ ] All 4 pre-existing tests in `client.test.ts` still pass with unchanged assertions (SWREADY-05 regression guard)
-- [ ] Gate check passes: `npm run test:unit` - **6 tests pass** in the `requestPushSubscription` describe block (4 existing + 2 new), no silent deletions
-- [ ] Full build gate passes: `npm run lint && npm run typecheck && npm run test:unit && npm run test:integration && npm run build`
+- [x] `SW_READY_TIMEOUT_MS = 10_000` constant and `waitForActiveServiceWorker(timeoutMs): Promise<ServiceWorkerRegistration | null>` helper added to `lib/notifications/client.ts` (`client.ts:51-73`), per design's sketch (races `navigator.serviceWorker.ready` vs. a timer, clears the timer on whichever settles first, never rejects)
+- [x] `requestPushSubscription()` calls `waitForActiveServiceWorker(SW_READY_TIMEOUT_MS)` after permission is granted and before calling `subscribe()` (`client.ts:110`)
+- [x] On timeout (`null` returned by the helper): logs `sw_not_ready` via the existing `logSubscriptionOutcome` mechanism, returns `null`, and never calls `pushManager.subscribe()` (SWREADY-03) - `client.ts:111-114`
+- [x] `pushManager.subscribe()` is called on the registration the helper resolved (from `navigator.serviceWorker.ready`), not the possibly-still-installing one `register()` returned - `client.ts:116` uses `activeRegistration`, not the discarded `register()` result
+- [x] `OUTCOME_LOG_LEVEL` gains `sw_not_ready: "error"` (`client.ts:34`)
+- [x] `stubServiceWorkerSupport` in `client.test.ts` extended with an optional `ready` promise, defaulting to an already-active registration (`client.test.ts:14-50`)
+- [x] New test (SWREADY-01/02): `client.test.ts:99-138` - `vi.useFakeTimers()`, asserts `subscribe` not called before `ready` resolves, called exactly once with the correct result after
+- [x] New test (SWREADY-03): `client.test.ts:160-187` - `ready` never resolves, advanced past 10s, asserts `null` returned, `subscribe` never called, `sw_not_ready` logged via `Sentry.logger.error`
+- [x] New test (SWREADY-04, added during Test Adequacy Review - this AC had no coverage): `client.test.ts:140-158` - `subscribe()` rejects after an already-active registration, asserts `null` returned and `subscribe_failed` logged via `Sentry.logger.error`
+- [x] All 4 pre-existing tests in `client.test.ts` still pass with unchanged assertions (SWREADY-05 regression guard) - `client.test.ts:69-97`
+- [x] Gate check passes: `npm run test:unit` - **7 tests pass** in the `requestPushSubscription` describe block (4 existing + 3 new; one more than planned - SWREADY-04 needed its own test, see above), 152 total unit tests, no silent deletions
+- [x] Full build gate passes: `npm run lint && npm run typecheck && npm run test:unit && npm run test:integration && npm run build` - all green (152 unit, 70 integration)
+
+**Deviation from plan**: two new tests were planned; three were written. Building the Test Adequacy Review's coverage table surfaced that SWREADY-04 (`subscribe()` still throws after the registration is active → unchanged `subscribe_failed` behavior) had zero test coverage anywhere in this file, before or after this change - not caught by the original task breakdown. Added the missing test rather than leaving the gap.
 
 **Tests**: unit
 **Gate**: quick (per-task), build (end of phase - same task here, since it's the only one)
