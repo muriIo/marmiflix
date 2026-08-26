@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import * as webpushModule from "web-push";
 import { buildNotificationPayload } from "./strategies";
 import type { NotificationJob } from "./types";
@@ -47,18 +48,31 @@ function isInvalidSubscriptionError(reason: unknown): boolean {
   return statusCode === 404 || statusCode === 410;
 }
 
-// Structured, greppable logs for diagnosing "notification didn't fire"
-// reports - console.error alone gave no way to tell a VAPID misconfig apart
-// from expired subscriptions apart from genuine delivery failures. Endpoint
-// is truncated (it's a push-service URL, not a secret, but still identifying)
+// Structured Sentry logs for diagnosing "notification didn't fire" reports -
+// console.error alone gave no way to tell a VAPID misconfig apart from
+// expired subscriptions apart from genuine delivery failures. Endpoint is
+// truncated (it's a push-service URL, not a secret, but still identifying)
 // to a short suffix - enough to correlate repeat failures without logging it
-// in full.
+// in full. Sentry.logger.* is a no-op until enableLogs: true is set in the
+// runtime's init (sentry.server.config.ts for this module) - never throws
+// either way, so this is safe to call unconditionally.
 function endpointSuffix(endpoint: string): string {
   return endpoint.slice(-12);
 }
 
-function logNotificationEvent(event: string, data: Record<string, unknown>): void {
-  console.log(JSON.stringify({ event, ...data }));
+type LogAttributes = Record<string, string | number | boolean | undefined>;
+
+// Sentry.logger attributes only accept string/number/boolean - drop
+// undefined entries (e.g. a rejection reason with no statusCode) instead of
+// sending them and having the SDK silently discard the whole attribute.
+function compactAttributes(attributes: LogAttributes): Record<string, string | number | boolean> {
+  const result: Record<string, string | number | boolean> = {};
+  for (const [key, value] of Object.entries(attributes)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
 }
 
 /**
@@ -94,16 +108,19 @@ export async function dispatchNotificationJob(
     } else {
       failed += 1;
       const reason = result.reason as { statusCode?: number; message?: string } | undefined;
-      logNotificationEvent("notification_delivery_failed", {
-        scenario: job.scenario,
-        endpoint: endpointSuffix(job.recipients[index].endpoint),
-        statusCode: reason?.statusCode,
-        message: reason?.message,
-      });
+      Sentry.logger.warn(
+        "notification_delivery_failed",
+        compactAttributes({
+          scenario: job.scenario,
+          endpoint: endpointSuffix(job.recipients[index].endpoint),
+          statusCode: reason?.statusCode,
+          message: reason?.message,
+        }),
+      );
     }
   });
 
-  logNotificationEvent("notification_dispatch", {
+  Sentry.logger.info("notification_dispatch", {
     scenario: job.scenario,
     recipients: job.recipients.length,
     delivered,
@@ -145,10 +162,17 @@ export async function dispatchAll(
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    logNotificationEvent("notification_dispatch_error", {
-      scenarios: jobs.map((job) => job.scenario),
-      reason: message.includes("VAPID") ? "vapid_not_configured" : "unexpected_error",
+    const reason = message.includes("VAPID") ? "vapid_not_configured" : "unexpected_error";
+    Sentry.logger.error("notification_dispatch_error", {
+      scenarios: jobs.map((job) => job.scenario).join(","),
+      reason,
       message,
+    });
+    // A whole dispatch batch failing (not just one recipient) is unexpected
+    // and actionable - captured as an issue too, not just a log line, so it
+    // actually pages/alerts instead of requiring someone to go searching logs.
+    Sentry.captureException(error instanceof Error ? error : new Error(message), {
+      tags: { reason },
     });
   }
 }
