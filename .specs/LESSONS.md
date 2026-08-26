@@ -50,6 +50,24 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: spec.md Edge Case 410/404; lib/notifications/dispatcher.ts:89; app/api/queue/route.ts:20 (notifications)
 - last seen: 2026-08-21T18:26:08Z
 
+### L-007 - When a spec AC requires no additional observable delay, assert it with a fake-timer test proving zero timer advancement was needed, not just a functional correctness test on the happy path.
+- signal: `spec_precision_gap` · recurrence: 1 feature(s) · scope: `notifications` · harmful: 0
+- features: push-subscription-sw-ready
+- evidence: SWREADY-02 (spec.md) (notifications)
+- last seen: 2026-08-26T20:06:15Z
+
+### L-008 - When an AC requires preserving a side effect such as a log reason or severity across existing code paths, assert that side effect directly in each affected test, not only the function's return value.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `notifications` · harmful: 0
+- features: push-subscription-sw-ready
+- evidence: SWREADY-05 (spec.md); validation.md iteration 1 (notifications)
+- last seen: 2026-08-26T20:06:15Z
+
+### L-009 - Every edge case listed in a spec's Edge Cases section must get its own explicit Done-when test item in tasks.md, not be left implicit in the main acceptance-criteria test plan.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `tasks-authoring` · harmful: 0
+- features: push-subscription-sw-ready
+- evidence: spec.md Edge Cases section; validation.md iteration 1 (tasks-authoring)
+- last seen: 2026-08-26T20:06:15Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.
