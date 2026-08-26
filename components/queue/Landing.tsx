@@ -6,6 +6,7 @@ import { formatDuration } from "../../lib/format";
 import { QueueActionError, type UseQueueResult } from "../../hooks/useQueue";
 import { requestPushSubscription } from "../../lib/notifications/client";
 import { clearWaitlistIdentity, getWaitlistIdentity } from "../../lib/waitlist-identity";
+import { NotificationStatusPill } from "../ui/NotificationStatusPill";
 import { QueueFull } from "./QueueFull";
 
 export function Landing({ queue }: { queue: UseQueueResult }) {
@@ -104,6 +105,7 @@ export function Landing({ queue }: { queue: UseQueueResult }) {
           />
           Avisar mesmo se eu fechar a aba
         </label>
+        <NotificationStatusPill />
         {error && (
           <p role="alert" className="text-alarm-500 text-sm">
             {error}
