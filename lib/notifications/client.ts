@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { nextPublicVapidPublicKey } from "../queue/config";
 import type { PushSubscriptionRecord } from "../queue/types";
 
@@ -13,6 +14,28 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
+}
+
+// Every early-exit and failure path below used to collapse into a bare
+// `null`, indistinguishable from every other reason a caller saw no
+// subscription. Logging the reason as a Sentry log (Sentry.logger.* is a
+// no-op until enableLogs: true is set in instrumentation-client.ts's init -
+// never throws either way) is what lets "notification never fired" reports
+// be told apart: never granted, unsupported browser, missing server config,
+// vs. subscribe() itself throwing. "unsupported"/"permission_denied" are
+// expected outcomes (an environment limitation or the visitor's own choice),
+// not bugs, so they're logged at info rather than warn/error.
+const OUTCOME_LOG_LEVEL: Record<string, "info" | "warn" | "error"> = {
+  subscribed: "info",
+  unsupported: "info",
+  permission_denied: "info",
+  vapid_key_missing: "warn",
+  subscribe_failed: "error",
+};
+
+function logSubscriptionOutcome(reason: string, detail?: unknown): void {
+  const level = OUTCOME_LOG_LEVEL[reason] ?? "warn";
+  Sentry.logger[level]("push_subscription_outcome", { reason, detail: String(detail ?? "") });
 }
 
 /**
@@ -31,11 +54,13 @@ export async function requestPushSubscription(): Promise<PushSubscriptionRecord 
     !("PushManager" in window) ||
     !("Notification" in window)
   ) {
+    logSubscriptionOutcome("unsupported");
     return null;
   }
 
   const vapidPublicKey = nextPublicVapidPublicKey();
   if (!vapidPublicKey) {
+    logSubscriptionOutcome("vapid_key_missing");
     return null;
   }
 
@@ -44,6 +69,7 @@ export async function requestPushSubscription(): Promise<PushSubscriptionRecord 
 
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
+      logSubscriptionOutcome("permission_denied", permission);
       return null;
     }
 
@@ -52,8 +78,10 @@ export async function requestPushSubscription(): Promise<PushSubscriptionRecord 
       applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
     });
 
+    logSubscriptionOutcome("subscribed");
     return subscription.toJSON() as unknown as PushSubscriptionRecord;
-  } catch {
+  } catch (error) {
+    logSubscriptionOutcome("subscribe_failed", error instanceof Error ? error.message : error);
     return null;
   }
 }

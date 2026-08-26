@@ -5,7 +5,10 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
-  { ignores: [".next/**", "next-env.d.ts"] },
+  // sw/**: separate service-worker global scope (webworker lib), not part of
+  // the app's tsconfig project - see sw/tsconfig.json. public/sw.js is its
+  // compiled output (npm run build:sw), not hand-edited source.
+  { ignores: [".next/**", "next-env.d.ts", "sw/**", "public/sw.js"] },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];
 

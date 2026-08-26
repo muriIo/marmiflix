@@ -3,8 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "npm run build:sw",
     "dev": "next dev",
+    "prebuild": "npm run build:sw",
     "build": "next build",
+    "build:sw": "esbuild sw/sw.ts --bundle --outfile=public/sw.js --format=iife --target=es2020",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -13,6 +16,8 @@
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
+    "@sentry/browser": "10.71.0",
+    "@sentry/nextjs": "10.71.0",
     "@upstash/redis": "1.34.3",
     "canvas-confetti": "1.9.4",
     "framer-motion": "13.1.0",
@@ -29,9 +34,11 @@
     "@types/node": "22.10.7",
     "@types/react": "19.0.7",
     "@types/react-dom": "19.0.3",
+    "@types/serviceworker": "0.0.200",
     "@types/web-push": "3.6.4",
     "autoprefixer": "10.4.20",
     "dotenv": "16.4.7",
+    "esbuild": "0.28.2",
     "eslint": "9.39.5",
     "eslint-config-next": "15.5.23",
     "jsdom": "29.1.1",

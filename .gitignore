@@ -34,3 +34,9 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Sentry Config File
+.env.sentry-build-plugin
+
+# generated from sw/sw.ts by `npm run build:sw` (predev/prebuild) - not source
+/public/sw.js
