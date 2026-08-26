@@ -46,7 +46,7 @@ export function NotificationStatusPill() {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-char-600 bg-char-900 px-3 py-2 text-sm">
+      <div className="flex items-center justify-between gap-3 text-sm">
         <span className="flex items-center gap-2 text-cream-300">
           <span className={`h-2 w-2 rounded-full ${DOT_CLASS[permission]}`} />
           {LABEL[permission]}
@@ -65,7 +65,8 @@ export function NotificationStatusPill() {
       {showHint && permission === "denied" && (
         <p className="mt-2 text-xs text-cream-500">
           Seu navegador bloqueou as notificações deste site. Habilite em Configurações do
-          navegador → Notificações para ser avisado quando chegar sua vez.
+          navegador → Notificações e, se necessário, atualize a página para o status refletir a
+          mudança.
         </p>
       )}
     </div>
