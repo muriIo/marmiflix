@@ -84,6 +84,14 @@ T1
 
 **Deviation from plan**: two new tests were planned; three were written. Building the Test Adequacy Review's coverage table surfaced that SWREADY-04 (`subscribe()` still throws after the registration is active → unchanged `subscribe_failed` behavior) had zero test coverage anywhere in this file, before or after this change - not caught by the original task breakdown. Added the missing test rather than leaving the gap.
 
+**Verifier fix round 1** (independent Verifier sub-agent, FAIL → fixed, see `validation.md`): gate passed (5/5 green) and all 3 discrimination-sensor mutations were killed on the first pass - the fix itself was correct. Verifier flagged 4 evidence gaps against the spec's own precise wording, all pre-existing/adjacent, none a functional regression:
+- SWREADY-05: the 4 legacy-outcome tests asserted only the return value, never the `Sentry.logger` reason/severity - added a logger spy assertion to each (`client.test.ts` legacy tests, now citing `unsupported`/info, `permission_denied`/info, `subscribed`/info, `vapid_key_missing`/warn).
+- spec.md Edge Case: `register()` rejecting had no test - added one (`registerError` option on `stubServiceWorkerSupport`), asserting `subscribe_failed` unchanged.
+- spec.md Edge Case: near-10s-boundary resolution (no off-by-one) had no test - added one resolving `ready` at 9,999ms, asserting `subscribe()` still fires.
+- SWREADY-02 spec-precision gap ("no added delay"): addressed by the same near-boundary test plus the pre-existing granted/success test - no separate action needed beyond the two additions above.
+
+Gate re-verified green after the fix: 154 unit (152 → 154, +2), 70 integration, lint/typecheck/build clean.
+
 **Tests**: unit
 **Gate**: quick (per-task), build (end of phase - same task here, since it's the only one)
 
