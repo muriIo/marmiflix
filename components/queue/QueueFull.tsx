@@ -8,6 +8,7 @@ import {
   getWaitlistIdentity,
   setWaitlistIdentity,
 } from "../../lib/waitlist-identity";
+import { NotificationStatusPill } from "../ui/NotificationStatusPill";
 
 async function postJson(path: string, body: Record<string, unknown>): Promise<Record<string, unknown>> {
   const response = await fetch(path, {
@@ -98,6 +99,10 @@ export function QueueFull({ onLeaveWaitlist }: { onLeaveWaitlist: () => void }) 
       <p className="text-cream-300 mb-8">
         Já são 100 pessoas na fila. Avise-me quando uma vaga abrir e eu te chamo de volta.
       </p>
+
+      <div className="mb-6 text-left">
+        <NotificationStatusPill />
+      </div>
 
       {registered ? (
         <>
