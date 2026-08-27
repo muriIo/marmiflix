@@ -1,10 +1,13 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
+import Link from "next/link";
 import { formatDuration } from "../../lib/format";
 import { QueueActionError, type UseQueueResult } from "../../hooks/useQueue";
+import { useNotificationPermission } from "../../hooks/useNotificationPermission";
 import { requestPushSubscription } from "../../lib/notifications/client";
 import { clearWaitlistIdentity, getWaitlistIdentity } from "../../lib/waitlist-identity";
+import { NotificationStatusPill } from "../ui/NotificationStatusPill";
 import { QueueFull } from "./QueueFull";
 
 export function Landing({ queue }: { queue: UseQueueResult }) {
@@ -13,10 +16,15 @@ export function Landing({ queue }: { queue: UseQueueResult }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [queueFull, setQueueFull] = useState(false);
+  const notificationPermission = useNotificationPermission();
 
   const view = queue.view;
   const isEmpty = (view?.queueCount ?? 0) === 0;
   const trimmedName = name.trim();
+  // Offering the opt-in when the browser can't or won't deliver a push is
+  // misleading - requesting a subscription would just silently no-op.
+  const canOptIntoNotifications =
+    notificationPermission !== "denied" && notificationPermission !== "unsupported";
 
   if (queueFull) {
     return <QueueFull onLeaveWaitlist={() => setQueueFull(false)} />;
@@ -94,15 +102,18 @@ export function Landing({ queue }: { queue: UseQueueResult }) {
           aria-label="Seu nome"
           className="w-full rounded-xl bg-char-900 border border-char-600 px-4 py-3 text-cream-100 placeholder:text-cream-500 focus:outline-none focus:ring-2 focus:ring-ember-500"
         />
-        <label className="flex items-center gap-2 text-sm text-cream-300">
-          <input
-            type="checkbox"
-            checked={notifyOptIn}
-            onChange={(event) => setNotifyOptIn(event.target.checked)}
-            className="h-4 w-4 rounded border-char-600 bg-char-900 accent-ember-500"
-          />
-          Avisar mesmo se eu fechar a aba
-        </label>
+        {canOptIntoNotifications && (
+          <label className="flex items-center gap-2 text-sm text-cream-300">
+            <input
+              type="checkbox"
+              checked={notifyOptIn}
+              onChange={(event) => setNotifyOptIn(event.target.checked)}
+              className="h-4 w-4 rounded border-char-600 bg-char-900 accent-ember-500"
+            />
+            Avisar mesmo se eu fechar a aba
+          </label>
+        )}
+        <NotificationStatusPill />
         {error && (
           <p role="alert" className="text-alarm-500 text-sm">
             {error}
@@ -116,6 +127,18 @@ export function Landing({ queue }: { queue: UseQueueResult }) {
           {submitting ? "Entrando..." : "Entrar na fila"}
         </button>
       </form>
+
+      <p className="text-xs text-cream-500 mt-6 text-center">
+        Ao entrar na fila, você concorda com os{" "}
+        <Link href="/termos" className="text-ember-500 underline">
+          Termos de Uso
+        </Link>{" "}
+        e a{" "}
+        <Link href="/privacidade" className="text-ember-500 underline">
+          Política de Privacidade
+        </Link>
+        .
+      </p>
     </div>
   );
 }
