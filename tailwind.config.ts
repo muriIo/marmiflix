@@ -64,6 +64,13 @@ const config: Config = {
           "0%, 100%": { opacity: "0", transform: "scale(0.4)" },
           "50%": { opacity: "1", transform: "scale(1)" },
         },
+        "trail-dash": {
+          to: { "stroke-dashoffset": "-20" },
+        },
+        "dot-breathe": {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.35)" },
+        },
       },
       animation: {
         "pulse-urgent": "pulse-urgent 0.8s ease-in-out infinite",
@@ -72,6 +79,10 @@ const config: Config = {
         "curl-rise": "curl-rise 3.4s ease-in-out infinite",
         "curl-rise-urgent": "curl-rise 1.4s ease-in-out infinite",
         twinkle: "twinkle 1.8s ease-in-out infinite",
+        "trail-dash": "trail-dash 1.4s linear infinite",
+        "trail-dash-fast": "trail-dash 0.5s linear infinite",
+        "dot-breathe": "dot-breathe 1.8s ease-in-out infinite",
+        "dot-breathe-fast": "dot-breathe 0.7s ease-in-out infinite",
       },
     },
   },
