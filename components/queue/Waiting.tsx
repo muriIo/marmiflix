@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatDuration } from "../../lib/format";
 import type { UseQueueResult } from "../../hooks/useQueue";
+import { QueueTrail } from "./QueueTrail";
 
 export function Waiting({ queue }: { queue: UseQueueResult }) {
   const [submitting, setSubmitting] = useState(false);
@@ -23,9 +24,8 @@ export function Waiting({ queue }: { queue: UseQueueResult }) {
 
   return (
     <div className="rounded-3xl bg-char-800 border border-char-700 p-8 shadow-glow">
-      <p className="text-sm uppercase tracking-[0.2em] text-ember-500 font-semibold mb-2">
-        Você está na fila
-      </p>
+      <QueueTrail aheadCount={view?.namesAhead.length ?? 0} />
+
       <h1 className="text-3xl font-bold text-cream-100 mb-6 leading-tight">
         Aguarde sua vez
       </h1>

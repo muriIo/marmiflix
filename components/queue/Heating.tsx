@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { formatDuration } from "../../lib/format";
 import type { UseQueueResult } from "../../hooks/useQueue";
+import { MicrowaveBowl } from "./MicrowaveBowl";
 
 export function Heating({ queue }: { queue: UseQueueResult }) {
   const [submitting, setSubmitting] = useState(false);
@@ -43,9 +44,8 @@ export function Heating({ queue }: { queue: UseQueueResult }) {
           : "bg-char-800 border-char-700"
       }`}
     >
-      <p className="text-sm uppercase tracking-[0.2em] text-ember-500 font-semibold mb-2">
-        Aquecendo
-      </p>
+      <MicrowaveBowl isUrgent={isUrgent} />
+
       <h1 className="text-3xl font-bold text-cream-100 mb-6 leading-tight">
         Sua marmita está no micro-ondas
       </h1>
