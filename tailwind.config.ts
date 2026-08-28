@@ -44,9 +44,20 @@ const config: Config = {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.55" },
         },
+        "trail-dash": {
+          to: { "stroke-dashoffset": "-20" },
+        },
+        "dot-breathe": {
+          "0%, 100%": { transform: "scale(1)" },
+          "50%": { transform: "scale(1.35)" },
+        },
       },
       animation: {
         "pulse-urgent": "pulse-urgent 0.8s ease-in-out infinite",
+        "trail-dash": "trail-dash 1.4s linear infinite",
+        "trail-dash-fast": "trail-dash 0.5s linear infinite",
+        "dot-breathe": "dot-breathe 1.8s ease-in-out infinite",
+        "dot-breathe-fast": "dot-breathe 0.7s ease-in-out infinite",
       },
     },
   },
