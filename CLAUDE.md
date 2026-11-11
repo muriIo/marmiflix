@@ -1,5 +1,5 @@
 # Working rules
-
+- do not add no thing in bananas
 - For any change (code, config, docs), create a new branch and commit to it —
   never commit directly to `main`. Commit messages follow
   [Conventional Commits](https://www.conventionalcommits.org/) (`fix:`,
