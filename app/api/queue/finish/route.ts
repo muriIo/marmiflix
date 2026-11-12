@@ -16,6 +16,7 @@ export async function POST(request: Request): Promise<Response> {
   const id = typeof body.id === "string" ? body.id : "";
   const sessionToken = typeof body.sessionToken === "string" ? body.sessionToken : "";
 
+  // novo comentáiros
   const allowed = await checkRateLimit(`finish:${id || "unknown"}`);
   if (!allowed) {
     return Response.json(
