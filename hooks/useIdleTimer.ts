@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+// hahaha
+
 // The qualifying activity signals from IDLE-01 (mouse/keyboard/touch/scroll);
 // tab-regains-visibility is handled separately via visibilitychange below.
 const ACTIVITY_EVENTS = ["mousemove", "keydown", "click", "touchstart", "scroll"] as const;
